@@ -567,7 +567,9 @@
           <div class="tex">\[1\,000\,000\,A^1_{23:\an{42}}+500\,000\;{}_{42|}A_{23}\]</div>
           <p>Como las dos coberturas <strong>no pueden pagar a la vez</strong> (Z<sub>1</sub>·Z<sub>2</sub> = 0), los momentos de cualquier orden se suman:</p>
           <div class="tex">\[E\big[(Z_1+Z_2)^k\big]=E[Z_1^k]+E[Z_2^k]\]</div>
-          <p>La <strong>varianza no se suma</strong>: \(\mathrm{Var}(Z_1+Z_2)=\mathrm{Var}Z_1+\mathrm{Var}Z_2-2E[Z_1]E[Z_2]\). En el ejemplo, la combinación cubre toda la vida, así que la fila de valor 0 desaparece.</p>
+          <p>La <strong>varianza no se suma</strong>:</p>
+          <div class="tex">\[\mathrm{Var}(Z_1+Z_2)=\mathrm{Var}\,Z_1+\mathrm{Var}\,Z_2-2E[Z_1]E[Z_2]\]</div>
+          <p>En el ejemplo, la combinación cubre toda la vida, así que la fila de valor 0 desaparece.</p>
         </div>
         <div class="stack">
           <div class="tl" data-tl="comb"></div>
@@ -609,10 +611,10 @@
             <div class="cap">Es una renta constante valorada al tipo de interés real R.</div></div>
           <div class="formula-box"><div class="ttl">Ejemplo · bono</div>
             <p style="font-size:.85rem; color:var(--ink-soft)">Nominal 1.000 €, cupón 3 % anual, 10 años, prima de amortización 100 €, i = 5 %:</p>
-            <div class="tex">\[30\,a_{\an 9\,0{,}05}+1130\,(1{,}05)^{-10}=213{,}2347+693{,}7220=906{,}9567\ \text{euros}\]</div></div>
+            <div class="tex">\[\begin{aligned}VA&=30\,a_{\an 9\,0{,}05}+1130\,(1{,}05)^{-10}\\&=213{,}2347+693{,}7220\\&=906{,}9567\ \text{euros}\end{aligned}\]</div></div>
           <div class="formula-box"><div class="ttl">Ejemplo · hipoteca francesa</div>
             <p style="font-size:.85rem; color:var(--ink-soft)">200.000 € a 20 años, 4 % efectivo anual, cuotas constantes prepagables:</p>
-            <div class="tex">\[i_{12}=1{,}04^{1/12}-1=0{,}003274\quad c=\frac{200\,000}{\ddot a_{\an{240}\,i_{12}}}=\frac{200\,000}{166{,}5917}\approx1\,200{,}60\ \text{euros}\]</div>
+            <div class="tex">\[\begin{aligned}i_{12}&=1{,}04^{1/12}-1=0{,}003274\\ c&=\frac{200\,000}{\ddot a_{\an{240}\,i_{12}}}=\frac{200\,000}{166{,}5917}\\&\approx1\,200{,}60\ \text{euros}\end{aligned}\]</div>
             <div class="cap">Semestral: \(i_2=0{,}019804\) y \(c\approx 7\,144{,}57\) €.</div></div>
         </div>
       </div>
