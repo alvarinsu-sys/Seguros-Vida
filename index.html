@@ -1,0 +1,1448 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Dosier técnico y calculadora de seguros de vida y rentas actuariales (MCAF UC3M).">
+<title>Seguros de Vida · Actuarial project</title>
+<meta name="author" content="Álvaro Insua Muñoz">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Layout: cabecera + mapa del cálculo + pestañas (Dosier técnico · Calculadora · Ejercicios · Glosario) con subpestañas; paneles numerados como la calculadora PER/PASEM y Kaplan-Meier */
+  :root{
+    color-scheme: dark;
+    --paper:#3a3a40; --paper-2:#45454c; --paper-3:#505058;
+    --ink:#f4f2f6; --ink-soft:#d1cfd8; --muted:#aca8b7;
+    --line:rgba(255,255,255,.14); --line-strong:rgba(255,255,255,.26);
+    --accent:#5fc2e0; --accent-ink:#0b2027; --accent-soft:#12333d;
+    --sur:#35d9c4; --sur-soft:#12312e;      /* supervivencia · p */
+    --mor:#f286ac; --mor-soft:#3a1d29;      /* fallecimiento · q */
+    --dif:#f0a24e; --dif-soft:#3a2a14;      /* descuento v · diferimiento */
+    --good:#4ad46a; --good-soft:#15331d; --bad:#ef7272; --bad-soft:#3a1c1c; --zero:#8d899a;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 28px -14px rgba(0,0,0,.55);
+    --font-display:'Syne',system-ui,sans-serif;
+    --font-body:'Manrope',system-ui,-apple-system,sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  [hidden]{display:none!important;}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--font-body); font-size:15px; line-height:1.55;
+    padding-inline:clamp(16px,4vw,40px); padding-block:clamp(20px,4vw,40px);}
+  .wrap{max-width:1120px; margin:0 auto; display:flex; flex-direction:column; gap:24px;}
+  h1,h2,h3{font-family:var(--font-display); text-wrap:balance; margin:0;}
+  h3{font-size:1rem;}
+  a{color:var(--accent);}
+  p{margin:0;}
+  .mono{font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
+  .muted{color:var(--muted);}
+  .eyebrow{font-weight:700; font-size:.7rem; letter-spacing:.09em; text-transform:uppercase; color:var(--muted);}
+
+  header.top{display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; align-items:flex-end;}
+  header.top .head-text{display:flex; flex-direction:column; gap:8px; max-width:700px; min-width:0;}
+  header.top h1{font-size:clamp(1.7rem,3.6vw,2.5rem); font-weight:800; letter-spacing:-.01em;}
+  header.top p{color:var(--ink-soft); font-size:.95rem;}
+  .badges{display:flex; flex-wrap:wrap; gap:8px;}
+  .badge{display:inline-flex; align-items:center; gap:8px; white-space:nowrap; background:var(--accent-soft); color:var(--accent); border:1px solid var(--line);
+    padding:8px 14px; border-radius:999px; font-size:.78rem; font-weight:700; text-decoration:none; box-shadow:var(--shadow);}
+  .badge.alt{background:var(--paper-2); color:var(--ink);}
+  .author{display:flex; align-items:center; gap:10px; font-size:.9rem; color:var(--ink-soft);}
+  .author .av{width:30px; height:30px; border-radius:50%; background:var(--accent-soft); color:var(--accent); border:1px solid var(--line-strong); display:inline-flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-weight:700; font-size:.72rem;}
+  .author strong{color:var(--ink);}
+
+  .tabs{display:flex; gap:8px; flex-wrap:wrap;}
+  .tabs button{font-family:var(--font-body); font-weight:700; font-size:.82rem; padding:8px 16px; border-radius:999px; border:1px solid var(--line-strong); background:var(--paper); color:var(--ink-soft); cursor:pointer;}
+  .tabs button.active{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
+  .tabs button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  nav.main-tabs{position:sticky; top:env(safe-area-inset-top,0px); z-index:5; padding-block:8px; background:var(--paper);}
+  nav.main-tabs button{font-size:.88rem; padding:9px 18px;}
+  .view{display:flex; flex-direction:column; gap:24px;}
+
+  .panel{background:var(--paper-2); border:1px solid var(--line); border-radius:18px; padding:clamp(16px,3vw,26px); box-shadow:var(--shadow); min-width:0;}
+  .panel > h2{font-size:1.1rem; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .panel > h2 .n{display:inline-flex; align-items:center; justify-content:center; flex:none; width:24px; height:24px; border-radius:8px; background:var(--accent); color:var(--accent-ink); font-size:.75rem; font-family:var(--font-mono); font-weight:700;}
+  .panel > h2 .sym{font-family:var(--font-mono); font-weight:500; font-size:.85rem; color:var(--muted);}
+  .prose{display:flex; flex-direction:column; gap:10px; max-width:74ch; color:var(--ink-soft);}
+  .prose strong{color:var(--ink);}
+  .prose ul,.prose ol{margin:0; padding-left:20px; display:flex; flex-direction:column; gap:4px;}
+  .two-col{display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:22px; align-items:start;}
+  @media (max-width:860px){ .two-col{grid-template-columns:minmax(0,1fr);} }
+  .stack{display:flex; flex-direction:column; gap:12px; min-width:0;}
+
+  .formula-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px;}
+  .formula-box{background:var(--paper-3); border:1px solid var(--line); border-radius:12px; padding:14px 16px; min-width:0;}
+  .formula-box .ttl{font-weight:700; font-size:.85rem; margin-bottom:8px;}
+  .formula-box .ttl .tag{font-family:var(--font-mono); font-weight:500; color:var(--muted); font-size:.75rem; margin-left:6px;}
+  .formula-box .cap{font-size:.8rem; color:var(--muted); margin-top:8px;}
+  .tex{overflow-x:auto; overflow-y:hidden; max-width:100%; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:10px 14px; font-size:1.08rem; color:var(--ink); text-align:center; margin-block:4px;}
+  .tex mjx-container[display="true"]{margin:.35em 0 !important;}
+  mjx-container{color:var(--ink);}
+  .color-key{display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; font-size:.84rem; color:var(--ink-soft);}
+  .color-key .item{display:inline-flex; gap:8px; align-items:center;}
+  .dot{width:10px; height:10px; border-radius:3px; display:inline-block; flex:none;}
+
+  .callout{border-radius:12px; padding:12px 14px; font-size:.87rem; display:flex; gap:10px; align-items:flex-start;}
+  .callout.warn{background:var(--dif-soft); color:var(--dif);}
+  .callout.info{background:var(--accent-soft); color:var(--ink-soft);}
+  .callout.info b{color:var(--accent);}
+  .callout.bad{background:var(--bad-soft); color:#f7b4b4;}
+  .callout .ic{font-family:var(--font-mono); font-weight:700; flex:none;}
+
+  .table-scroll{overflow-x:auto; border:1px solid var(--line); border-radius:12px;}
+  table{border-collapse:collapse; width:100%; font-size:.84rem;}
+  table th, table td{padding:7px 12px; text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums;}
+  table th:first-child, table td:first-child{text-align:left;}
+  table thead th{background:var(--paper-3); color:var(--ink-soft); font-weight:700; font-size:.7rem; letter-spacing:.04em; text-transform:uppercase;}
+  table tbody tr:nth-child(even){background:rgba(255,255,255,.035);}
+  table td{font-family:var(--font-mono);}
+  table.ct td{text-align:center;} table.ct td:first-child{text-align:left; font-family:var(--font-body); color:var(--muted); font-size:.78rem;}
+  table.ct{font-size:.9rem;}
+  table.wrap td{white-space:normal; font-family:var(--font-body);}
+  table.wrap td.mono{font-family:var(--font-mono);}
+
+  /* mapa del cálculo */
+  .flow{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; counter-reset:st;}
+  @media (max-width:900px){ .flow{grid-template-columns:repeat(2,minmax(0,1fr));} }
+  @media (max-width:480px){ .flow{grid-template-columns:minmax(0,1fr);} }
+  .step{background:var(--paper-3); border:1px solid var(--line); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:8px; position:relative; min-width:0;}
+  .step .k{font-family:var(--font-mono); font-size:.72rem; color:var(--accent); font-weight:700;}
+  .step h3{font-size:.95rem;}
+  .step p{font-size:.82rem; color:var(--ink-soft);}
+  .step .tex{font-size:.92rem; padding:6px 8px;}
+
+  /* fichas de producto */
+  .prod-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px;}
+  .prod{background:var(--paper-3); border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:6px; cursor:pointer; text-align:left; color:var(--ink); font-family:var(--font-body);}
+  .prod:hover{border-color:var(--accent);}
+  .prod .nm{font-weight:800; font-size:.86rem;}
+  .prod .sy{font-size:.95rem;}
+  .prod svg{width:100%; height:auto;}
+
+  svg .tl-axis{stroke:var(--line-strong); stroke-width:1.5;}
+  svg .tl-txt{fill:var(--muted); font-family:var(--font-mono); font-size:10.5px;}
+  svg .tl-lbl{fill:var(--ink-soft); font-family:var(--font-body); font-size:11px; font-weight:600;}
+
+  /* ejercicios */
+  .seg{display:inline-flex; border:1px solid var(--line-strong); border-radius:10px; overflow:hidden;}
+  .seg button{border:none; background:var(--paper); color:var(--ink-soft); font-family:var(--font-body); font-weight:600; font-size:.84rem; padding:8px 14px; cursor:pointer;}
+  .seg button.active{background:var(--accent); color:var(--accent-ink);}
+  .err-list{display:flex; flex-direction:column; gap:10px;}
+  .err-item{display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px; background:var(--paper-3); border:1px solid var(--line); border-radius:12px; padding:12px 14px;}
+  .err-item .tagx{font-family:var(--font-mono); font-size:.72rem; font-weight:700; color:var(--dif); background:var(--dif-soft); padding:3px 8px; border-radius:6px; align-self:start; white-space:nowrap;}
+  .err-item .tagx.ok{color:var(--good); background:#15331d;}
+  .err-item p{font-size:.88rem; color:var(--ink-soft);}
+  .err-item b{color:var(--ink);}
+
+  /* glosario */
+  .gl-tools{display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:16px;}
+  .gl-tools input{flex:1 1 260px; font-family:var(--font-body); font-size:.92rem; color:var(--ink); background:var(--paper); border:1px solid var(--line-strong); border-radius:10px; padding:9px 11px;}
+  .gl-tools input:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  .gl-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px;}
+  .gl-item{background:var(--paper-3); border:1px solid var(--line); border-radius:12px; padding:13px 15px; display:flex; flex-direction:column; gap:6px;}
+  .gl-item .term{font-weight:800; font-size:.95rem; display:flex; justify-content:space-between; gap:10px; align-items:baseline; flex-wrap:wrap;}
+  .gl-item .sym{font-family:var(--font-mono); font-size:.78rem; color:var(--accent);}
+  .gl-item .def{font-size:.85rem; color:var(--ink-soft);}
+  .gl-item .cat{font-size:.66rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted);}
+
+  footer{font-size:.8rem; color:var(--muted); text-align:center; padding-block:8px 4px; display:flex; flex-direction:column; gap:4px;}
+  footer a{color:var(--muted);}
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important;} }
+
+  /* ---- calculadora ---- */
+  *{box-sizing:border-box;}
+  [hidden]{display:none!important;}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--font-body); font-size:15px; line-height:1.5;
+    padding-inline:clamp(16px,4vw,40px); padding-block:clamp(20px,4vw,40px);}
+  .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:22px;}
+  h1,h2,h3{font-family:var(--font-display); text-wrap:balance; margin:0;}
+  a{color:var(--accent);}
+  p{margin:0;}
+  .mono{font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
+  .muted{color:var(--muted);}
+  .eyebrow{font-weight:700; font-size:.7rem; letter-spacing:.09em; text-transform:uppercase; color:var(--muted);}
+  sub,sup{font-size:.72em;}
+
+  header.top{display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; align-items:flex-end;}
+  header.top .head-text{display:flex; flex-direction:column; gap:8px; max-width:700px; min-width:0;}
+  header.top h1{font-size:clamp(1.7rem,3.6vw,2.5rem); font-weight:800; letter-spacing:-.01em;}
+  header.top p{color:var(--ink-soft); font-size:.95rem;}
+  .badges{display:flex; flex-wrap:wrap; gap:8px;}
+  .badge{display:inline-flex; align-items:center; gap:8px; white-space:nowrap; background:var(--accent-soft); color:var(--accent); border:1px solid var(--line);
+    padding:8px 14px; border-radius:999px; font-size:.78rem; font-weight:700; text-decoration:none; box-shadow:var(--shadow);}
+  .badge.alt{background:var(--paper-2); color:var(--ink);}
+  .author{display:flex; align-items:center; gap:10px; font-size:.9rem; color:var(--ink-soft);}
+  .author .av{width:30px; height:30px; border-radius:50%; background:var(--accent-soft); color:var(--accent); border:1px solid var(--line-strong); display:inline-flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-weight:700; font-size:.72rem;}
+  .author strong{color:var(--ink);}
+
+  .tabs{display:flex; gap:8px; flex-wrap:wrap;}
+  .tabs button{font-family:var(--font-body); font-weight:700; font-size:.82rem; padding:8px 16px; border-radius:999px; border:1px solid var(--line-strong); background:var(--paper); color:var(--ink-soft); cursor:pointer;}
+  .tabs button.active{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
+  button:focus-visible, select:focus-visible, input:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  nav.main-tabs{position:sticky; top:env(safe-area-inset-top,0px); z-index:5; padding-block:8px; background:var(--paper);}
+  nav.main-tabs button{font-size:.88rem; padding:9px 18px;}
+  .view{display:flex; flex-direction:column; gap:22px;}
+
+  .panel{background:var(--paper-2); border:1px solid var(--line); border-radius:18px; padding:clamp(16px,3vw,24px); box-shadow:var(--shadow); min-width:0;}
+  .panel > h2{font-size:1.08rem; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .panel > h2 .n{display:inline-flex; align-items:center; justify-content:center; flex:none; width:24px; height:24px; border-radius:8px; background:var(--accent); color:var(--accent-ink); font-size:.75rem; font-family:var(--font-mono); font-weight:700;}
+  .panel > h2 .sym{font-family:var(--font-mono); font-weight:500; font-size:.85rem; color:var(--accent);}
+
+  .controls-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px 16px;}
+  .field{display:flex; flex-direction:column; gap:6px; min-width:0;}
+  .field.wide{grid-column:span 2;}
+  @media (max-width:480px){ .field.wide{grid-column:span 1;} }
+  .field label,.field .lbl{font-size:.72rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--muted);}
+  .field select,.field input{font-family:var(--font-body); font-size:.92rem; color:var(--ink); background:var(--paper); border:1px solid var(--line-strong); border-radius:10px; padding:9px 11px; width:100%;}
+  .field input[type=number]{font-family:var(--font-mono);}
+  .field.disabled{opacity:.45;}
+  .hint{font-size:.76rem; color:var(--muted); line-height:1.4;}
+  .seg{display:flex; border:1px solid var(--line-strong); border-radius:10px; overflow:hidden;}
+  .seg button{flex:1; border:none; background:var(--paper); color:var(--ink-soft); font-family:var(--font-body); font-weight:600; font-size:.84rem; padding:9px 6px; cursor:pointer; white-space:nowrap;}
+  .seg button.active{background:var(--accent); color:var(--accent-ink);}
+  .group-head{grid-column:1/-1; font-weight:700; font-size:.8rem; color:var(--ink-soft); border-top:1px solid var(--line); padding-top:12px;}
+  .group-head:first-child{border-top:none; padding-top:0;}
+  .symbol-line{margin-top:14px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; font-size:.9rem; color:var(--ink-soft);}
+  .symbol-line .big{font-family:var(--font-mono); font-size:1.05rem; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:6px 12px;}
+  .note{font-size:.82rem; border-radius:10px; padding:8px 12px; display:flex; gap:8px; align-items:flex-start;}
+  .note.warn{color:var(--dif); background:var(--dif-soft);}
+  .note.info{color:var(--ink-soft); background:var(--accent-soft);}
+
+  .cards-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px;}
+  .card{background:var(--paper-2); border:1px solid var(--line); border-radius:16px; padding:14px 16px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:4px; border-top:3px solid var(--cc,var(--accent)); min-width:0;}
+  .card .k{font-size:.74rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted);}
+  .card .v{font-family:var(--font-mono); font-weight:700; font-size:1.35rem; letter-spacing:-.01em; font-variant-numeric:tabular-nums; overflow-wrap:anywhere;}
+  .card .p{font-family:var(--font-mono); font-size:.76rem; color:var(--muted);}
+  .chip{display:inline-flex; align-self:flex-start; align-items:center; gap:6px; font-size:.72rem; font-weight:700; padding:3px 9px; border-radius:999px;}
+  .chip.good{background:var(--good-soft); color:var(--good);} .chip.bad{background:var(--bad-soft); color:var(--bad);} .chip.neutral{background:var(--paper-3); color:var(--muted);}
+
+  .charts{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px;}
+  @media (max-width:860px){ .charts{grid-template-columns:minmax(0,1fr);} }
+  .chart-box{background:var(--paper-3); border:1px solid var(--line); border-radius:14px; padding:12px 12px 8px; min-width:0; position:relative;}
+  .chart-box h3{font-family:var(--font-body); font-size:.82rem; font-weight:700; color:var(--ink-soft); margin-bottom:6px;}
+  svg.chart{width:100%; height:auto; display:block; overflow:visible;}
+  svg .ax{fill:var(--muted); font-family:var(--font-mono); font-size:10px;}
+  svg .axl{fill:var(--muted); font-family:var(--font-body); font-size:10.5px;}
+  .legend-row{display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:6px; font-size:.74rem; color:var(--ink-soft);}
+  .legend-row span{display:inline-flex; align-items:center; gap:6px;}
+  .sw{width:10px; height:10px; border-radius:3px; display:inline-block;}
+  .tip{position:absolute; pointer-events:none; background:var(--ink); color:var(--paper); font-family:var(--font-mono); font-size:.72rem; padding:6px 9px; border-radius:8px; white-space:nowrap; transform:translate(-50%,-110%); opacity:0; z-index:3;}
+  .tip.show{opacity:1;}
+
+  .two{display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:16px; align-items:start;}
+  @media (max-width:860px){ .two{grid-template-columns:minmax(0,1fr);} }
+  .table-scroll{overflow-x:auto; border:1px solid var(--line); border-radius:12px;}
+  .tall{max-height:420px; overflow-y:auto;}
+  table{border-collapse:collapse; width:100%; font-size:.82rem;}
+  table th,table td{padding:6px 11px; text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums;}
+  table th:first-child,table td:first-child{text-align:left;}
+  table thead th{background:var(--paper-3); color:var(--ink-soft); font-weight:700; font-size:.68rem; letter-spacing:.04em; text-transform:uppercase; position:sticky; top:0; z-index:1;}
+  table tbody tr:nth-child(even){background:rgba(255,255,255,.035);}
+  table td{font-family:var(--font-mono);}
+  table td.txt{font-family:var(--font-body); color:var(--ink-soft);}
+  table tr.hl td{background:var(--accent-soft); color:var(--ink);}
+  table tfoot td{border-top:1px solid var(--line-strong); font-weight:700; background:var(--paper-3);}
+  .kdot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;}
+  .row-actions{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  .btn{font-family:var(--font-body); font-weight:700; font-size:.8rem; padding:8px 14px; border-radius:10px; border:1px solid var(--line-strong); background:var(--paper); color:var(--ink); cursor:pointer;}
+  .btn:hover{border-color:var(--accent); color:var(--accent);}
+  .btn.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
+  textarea{width:100%; font-family:var(--font-mono); font-size:.74rem; min-height:110px; background:var(--paper); color:var(--ink); border:1px solid var(--line-strong); border-radius:10px; padding:10px;}
+
+  .ex-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px;}
+  .ex{background:var(--paper-3); border:1px solid var(--line); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:8px;}
+  .ex .t{font-weight:800; font-size:.92rem;}
+  .ex .s{font-family:var(--font-mono); font-size:.82rem; color:var(--accent);}
+  .ex .d{font-size:.82rem; color:var(--ink-soft); flex:1;}
+  .ex .tag{font-size:.64rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted);}
+
+  footer{font-size:.8rem; color:var(--muted); text-align:center; padding-block:8px 4px; display:flex; flex-direction:column; gap:4px;}
+  footer a{color:var(--muted);}
+  @media (max-width:520px){ .cards-grid{grid-template-columns:repeat(2,minmax(0,1fr));} .card .v{font-size:1.1rem;} .seg button{font-size:.76rem; padding:9px 3px;} }
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important;} }
+  .subnav{display:flex; gap:8px; flex-wrap:wrap;}
+  .subnav button{font-family:var(--font-body); font-weight:700; font-size:.8rem; padding:7px 14px; border-radius:10px; border:1px solid var(--line); background:var(--paper-2); color:var(--ink-soft); cursor:pointer;}
+  .subnav button.active{border-color:var(--accent); color:var(--accent); background:var(--accent-soft);}
+  .subview{display:flex; flex-direction:column; gap:22px;}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="head-text">
+      <span class="eyebrow">MCAF · UC3M · Seguros de vida</span>
+      <h1>Seguros de vida y rentas actuariales</h1>
+      <div class="author"><span class="av">AI</span><span>Autor · <strong>Álvaro Insua Muñoz</strong></span></div>
+      <p>Dosier técnico y calculadora a partir de los apuntes de clase: tablas de mortalidad, variable aleatoria valor actual, tabla de contingencia y momentos de orden k (varianza, asimetría, curtosis y coeficiente de variación) de seguros y rentas actuariales, con las tablas oficiales PER2020 y PASEM2020.</p>
+    </div>
+    <div class="badges">
+      <a class="badge" href="https://www.boe.es/buscar/doc.php?id=BOE-A-2020-17154" target="_blank" rel="noopener">Tablas · BOE-A-2020-17154 ↗</a>
+    </div>
+  </header>
+
+
+  <section class="panel" style="padding-block:14px">
+    <div class="color-key"><span class="eyebrow">Código de color de las fórmulas</span>
+      <span class="item"><span class="dot" style="background:var(--accent)"></span>\(\Cc\) capital o cuantía</span>
+      <span class="item"><span class="dot" style="background:var(--dif)"></span>\(\V\) factor de descuento</span>
+      <span class="item"><span class="dot" style="background:var(--mor)"></span>\(\qd{t}{x}\) fallecimiento</span>
+      <span class="item"><span class="dot" style="background:var(--sur)"></span>\(\pn{t}{x}\) supervivencia</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Mapa del cálculo</h2>
+    <div class="flow">
+      <div class="step"><span class="k">PASO 1</span><h3>Bases técnicas</h3><p>Tabla de mortalidad (sexo, generación, orden) e interés técnico i.</p><div class="tex">\(\V=(1+i)^{-1}\)</div></div>
+      <div class="step"><span class="k">PASO 2</span><h3>Probabilidades</h3><p>De las q<sub>x</sub> de la tabla se obtienen supervivencia y fallecimiento diferido.</p><div class="tex">\(\pn{n}{x}=\prod_{k=0}^{n-1}(1-q_{x+k})\)</div></div>
+      <div class="step"><span class="k">PASO 3</span><h3>Tabla de contingencia</h3><p>Cada suceso posible (morir en el año i, sobrevivir) con su valor actual y su probabilidad. Las probabilidades suman 1.</p><div class="tex">\(\{(\text{valor}_j,\ \text{prob}_j)\}\)</div></div>
+      <div class="step"><span class="k">PASO 4</span><h3>Momentos de orden k</h3><p>Se elevan los valores a k y se ponderan por su probabilidad.</p><div class="tex">\(E[Z^k]=\sum_j \text{valor}_j^{\,k}\,\text{prob}_j\)</div></div>
+      <div class="step"><span class="k">PASO 5</span><h3>Indicadores</h3><p>Prima única pura (k = 1), varianza, asimetría, curtosis y CV para medir el riesgo.</p><div class="tex">\(\sigma^2=E[Z^2]-E[Z]^2\)</div></div>
+    </div>
+  </section>
+
+  <nav class="tabs main-tabs" id="main-tabs" aria-label="Secciones">
+    <button data-view="dos" class="active">Dosier técnico</button>
+    <button data-view="calc">Calculadora</button>
+    <button data-view="ej">Ejercicios y erratas</button>
+    <button data-view="glo">Glosario</button>
+  </nav>
+
+
+  <!-- ===================== DOSIER ===================== -->
+  <section class="view" id="view-dos">
+    <div class="subnav" data-group="sv"><button data-sub="fund" class="active">Fundamentos</button><button data-sub="seg">Seguros de vida</button><button data-sub="ren">Rentas</button></div>
+  <section class="subview" id="sv-fund">
+    <section class="panel">
+      <h2><span class="n">1</span>El ramo de vida y qué estudia la asignatura</h2>
+      <div class="two-col">
+        <div class="prose">
+          <p>El <strong>ramo de vida</strong> cubre contratos cuya contingencia es la vida humana. Se divide en dos familias:</p>
+          <ul>
+            <li><strong>Seguros de vida:</strong> compensación por fallecimiento o invalidez, normalmente <strong>un único pago</strong> (la suma asegurada C).</li>
+            <li><strong>Rentas actuariales:</strong> <strong>varios pagos</strong> vinculados a la supervivencia del asegurado.</li>
+          </ul>
+          <p>Para cada contrato se hacen tres cosas: (1) estudiar su naturaleza, (2) <strong>tarificar</strong> (calcular la prima) y (3) calcular las <strong>reservas</strong>.</p>
+          <p>Cada contrato se analiza en tres pasos: su definición legal, su estudio como <strong>variable aleatoria</strong> y los <strong>momentos</strong> de su distribución de probabilidad.</p>
+        </div>
+        <div class="stack">
+          <div class="callout info"><span class="ic">i</span><span><b>Reserva vs. capital de solvencia.</b> La reserva (provisión técnica) es un concepto contable que se sitúa en el pasivo del balance y no reparte beneficio. Aparte está el capital de solvencia obligatorio (SCR) de Solvencia II, que cubre desviaciones adversas por encima de la mejor estimación.</span></div>
+          <div class="formula-box">
+            <div class="ttl">Variable aleatoria del contrato</div>
+            <p class="prose" style="font-size:.88rem">Es el <strong>valor presente en 0</strong> de las obligaciones futuras dimanantes del contrato. Se descuenta con el interés técnico, que suele fijar el regulador.</p>
+            <div class="tex">\[\V=(1+i)^{-1}\qquad \text{capitalización }(1+i)^k,\ \ \text{descuento } \V^{k}\]</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">2</span>Tablas de mortalidad</h2>
+      <div class="two-col">
+        <div class="prose">
+          <p>En el enfoque discreto se parte de las tasas anuales \(q_x\) de una <strong>tabla de mortalidad</strong> (modelo discreto y no paramétrico). Las tablas discriminan por <strong>sexo</strong> y, algunas, por <strong>generación</strong>:</p>
+          <ul>
+            <li><strong>Generacionales</strong> (PER2020): la q<sub>x</sub> depende del año natural en que se alcanza la edad x, mediante un factor de mejora λ<sub>x</sub>.</li>
+            <li><strong>No generacionales o de periodo</strong> (<em>ultimate</em>, PASEM2020): una sola q<sub>x</sub> por edad y sexo.</li>
+          </ul>
+          <p>Por uso: tablas de <strong>decesos</strong> y de <strong>vida</strong>, y dentro de vida, de <strong>supervivencia</strong> (rentas, PER) y de <strong>riesgo</strong> (seguros de fallecimiento, PASEM).</p>
+          <div class="callout warn"><span class="ic">!</span><span><b>Corrección a los apuntes.</b> Según la Resolución DGSFP de 17/12/2020, las tablas de <b>2.º orden</b> son la <b>mejor estimación</b> (sin recargos, para Solvencia II), y las de <b>1.er orden</b> llevan <b>recargos de seguridad</b> y son las que se usan para tarificar y calcular provisiones contables. En los apuntes aparece al revés.</span></div>
+        </div>
+        <div class="stack">
+          <div class="formula-box">
+            <div class="ttl">Ajuste generacional <span class="tag">PER2020 · base 2012</span></div>
+            <div class="tex">\[q_{x}^{(T)}=q_{x}^{\text{base}}\;e^{-\lambda_x\,(T-2012)},\qquad T=\text{año nac.}+x\]</div>
+            <div class="cap">Las PASEM2020 son de periodo: la q<sub>x</sub> se usa tal cual y el año de nacimiento no interviene.</div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Tabla</th><th>Tipo</th><th>Uso</th><th>ω</th></tr></thead>
+              <tbody>
+                <tr><td>PER2020 Ind./Col.</td><td>Generacional</td><td>Supervivencia</td><td>120</td></tr>
+                <tr><td>PASEM2020 General</td><td>De periodo</td><td>Riesgo</td><td>120</td></tr>
+                <tr><td>PASEM2020 Decesos</td><td>De periodo</td><td>Decesos</td><td>120</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="cap muted" style="font-size:.78rem">ω es la última edad de la tabla (q<sub>ω</sub> = 1). Con edades 0–120 el número máximo de años de cobertura desde x es (ω + 1) − x = (120 + 1) − x. Siempre ω = 120; cuando aparece 121 es ω + 1.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">3</span>Probabilidades a partir de la tabla</h2>
+      <div class="formula-grid">
+        <div class="formula-box"><div class="ttl">Supervivencia n años</div>
+          <div class="tex">\[\pn{n}{x}=\prod_{i=1}^{n}\big(1-q_{x+i-1}\big)=\frac{l_{x+n}}{l_x}\]</div>
+          <div class="cap">Notación estadística equivalente: \({}_tp_x=S_x(t)\).</div></div>
+        <div class="formula-box"><div class="ttl">Fallecimiento en n años</div>
+          <div class="tex">\[\qn{n}{x}=1-\pn{n}{x}\]</div></div>
+        <div class="formula-box"><div class="ttl">Fallecimiento diferido</div>
+          <div class="tex">\[\qd{m}{x}=\pn{m}{x}\,q_{x+m}\qquad {}_{m|n}q_x=\pn{m}{x}-\pn{m+n}{x}\]</div>
+          <div class="cap">\({}_{1|}q_x\): sobrevive 1 año y fallece el siguiente. \({}_{0|}q_x=q_x\).</div></div>
+        <div class="formula-box"><div class="ttl">Edades no enteras <span class="tag">interpolación</span></div>
+          <div class="tex">\[{}_{n+t}p_{x+s},\qquad n\ \text{entero},\ \ t,s\in(0,1)\]</div>
+          <div class="tex">\[l_{x+s}=l_x-s\,d_x\quad\Rightarrow\quad {}_{s}p_{x}=1-s\,q_x\]</div>
+          <div class="cap">Las tablas son discretas. Para tiempos no enteros (rentas fraccionadas, \({}_{\frac{i-1}{m}|\frac1m}q_x\)) hay que interpolar; aquí se interpola \(l_x\) linealmente dentro de cada año de edad.</div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">4</span>Variable aleatoria, tabla de contingencia y momentos</h2>
+      <div class="two-col">
+        <div class="prose">
+          <p>El valor actual Z de un contrato es una <strong>variable aleatoria discreta</strong>. Se describe con una <strong>tabla de contingencia</strong> de dos columnas: cada valor posible y su probabilidad. La suma de probabilidades debe ser 1; en los apuntes se marca con un ① al pie.</p>
+          <p>El <strong>momento de orden k</strong> se escribe en los apuntes como \(E[A]^k\) o \({}^kA\). Significa \(E[Z^k]\), no \((E[Z])^k\).</p>
+          <ul>
+            <li><strong>k = 1</strong>: esperanza, prima única pura o valor actuarial.</li>
+            <li><strong>k = 2</strong>: con la media da la varianza: momento de orden 2 menos media al cuadrado.</li>
+            <li><strong>k = 3</strong>: coeficiente de asimetría.</li>
+            <li><strong>k = 4</strong>: coeficiente de curtosis.</li>
+          </ul>
+          <p>El <strong>coeficiente de variación</strong> σ/μ mide el riesgo por euro de prima. En una cartera de N pólizas independientes e iguales el CV del total es CV/√N: la base del seguro es la ley de los grandes números.</p>
+        </div>
+        <div class="stack">
+          <div class="formula-box"><div class="ttl">Momento de orden k</div>
+            <div class="tex">\[E[Z^k]=\sum_j \big(\text{valor}_j\big)^{k}\cdot \text{prob}_j\]</div></div>
+          <div class="formula-box"><div class="ttl">Indicadores a partir de los momentos</div>
+            <div class="tex">\[\mu=E[Z]\qquad \sigma^2=E[Z^2]-\mu^2\qquad CV=\frac{\sigma}{\mu}\]</div>
+            <div class="tex">\[\gamma_1=\frac{E[Z^3]-3\mu E[Z^2]+2\mu^3}{\sigma^3}\]</div>
+            <div class="tex">\[\gamma_2=\frac{E[Z^4]-4\mu E[Z^3]+6\mu^2E[Z^2]-3\mu^4}{\sigma^4}\]</div>
+            <div class="cap">γ<sub>2</sub> es la curtosis; el exceso de curtosis es γ<sub>2</sub> − 3 (0 en la normal).</div></div>
+          <div class="callout info"><span class="ic">i</span><span><b>Términos con valor 0.</b> Las filas sin pago aportan \(0^k\cdot\text{prob}=0\) a cualquier momento con k ≥ 1, pero se escriben en la tabla para que las probabilidades sumen 1.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">5</span>Funciones de conmutación <span class="sym">hoja «Generación tablas»</span></h2>
+      <div class="two-col">
+        <div class="prose">
+          <p>La hoja de cálculo de clase (capturas «Generación tablas») construye, para la tabla, el sexo, la edad y el interés elegidos, las columnas \(q_x, p_x, l_x, d_x\) con raíz \(l_0=10\,000\,000\) y las funciones de conmutación \(D_x, N_x, S_x, C_x, M_x, R_x\). Las dos últimas columnas son \(A_x=M_x/D_x\) y \(\ddot a_x=N_x/D_x\).</p>
+          <p>Las conmutaciones dan las esperanzas (k = 1) como cociente de columnas. Para los momentos de orden k ≥ 2 hace falta la tabla de contingencia completa. La pestaña Calculadora → Tabla de conmutación reproduce estas columnas con cualquier tabla e interés.</p>
+        </div>
+        <div class="table-scroll">
+          <table class="wrap">
+            <thead><tr><th>Función</th><th>Definición</th><th>Uso</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">D<sub>x</sub></td><td class="mono">v<sup>x</sup> l<sub>x</sub></td><td>Capital diferido: ₙE<sub>x</sub> = D<sub>x+n</sub>/D<sub>x</sub></td></tr>
+              <tr><td class="mono">N<sub>x</sub></td><td class="mono">Σ<sub>y≥x</sub> D<sub>y</sub></td><td>Rentas: ä<sub>x</sub> = N<sub>x</sub>/D<sub>x</sub></td></tr>
+              <tr><td class="mono">S<sub>x</sub></td><td class="mono">Σ<sub>y≥x</sub> N<sub>y</sub></td><td>Acumulado de N</td></tr>
+              <tr><td class="mono">C<sub>x</sub></td><td class="mono">v<sup>x+1</sup> d<sub>x</sub></td><td>Pago al final del año de fallecimiento</td></tr>
+              <tr><td class="mono">M<sub>x</sub></td><td class="mono">Σ<sub>y≥x</sub> C<sub>y</sub></td><td>Seguros: A<sub>x</sub> = M<sub>x</sub>/D<sub>x</sub></td></tr>
+              <tr><td class="mono">R<sub>x</sub></td><td class="mono">Σ<sub>y≥x</sub> M<sub>y</sub></td><td>Acumulado de M</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </section>
+  <section class="subview" id="sv-seg" hidden>
+    <section class="panel">
+      <h2>Los seis seguros de los apuntes</h2>
+      <p class="prose" style="margin-bottom:14px">Pulsa una ficha para ir a su explicación. En los esquemas, el rosa es cobertura de fallecimiento, el verde-azulado el pago por supervivencia y el ámbar el periodo de diferimiento. El pago se hace al final del año de fallecimiento.</p>
+      <div class="prod-grid" id="prod-grid"></div>
+    </section>
+
+    <section class="panel" id="s-temp">
+      <h2><span class="n">1</span>Seguro temporal n años <span class="sym">A¹x:n</span></h2>
+      <div class="two-col">
+        <div class="stack">
+          <div class="prose"><p>Paga la suma asegurada \(\Cc\) si el asegurado fallece <strong>dentro de los n años</strong>. Si sobrevive a x + n no cobra nada. Es el seguro de riesgo puro.</p></div>
+          <div class="tl" data-tl="temp"></div>
+          <div class="formula-box"><div class="ttl">Momento de orden k</div>
+            <div class="tex">\[E\big[A^{1}_{x:\an{n}}\big]^{k}=\sum_{i=1}^{n}\big(\Cc\,\V^{\,i}\big)^{k}\,\qd{i-1}{x}\;+\;0^{k}\,\pn{n}{x}\]</div>
+            <div class="cap">Conmutación (k = 1, C = 1): \(A^1_{x:\an n}=\dfrac{M_x-M_{x+n}}{D_x}\).</div></div>
+        </div>
+        <div class="table-scroll"><table class="ct">
+          <thead><tr><th>Suceso</th><th>Valor</th><th>Prob.</th></tr></thead>
+          <tbody>
+            <tr><td>Muere el 1.er año</td><td>\(\Cc\V\)</td><td>\(q_x\)</td></tr>
+            <tr><td>Muere el 2.º año</td><td>\(\Cc\V^2\)</td><td>\(\qd{1}{x}\)</td></tr>
+            <tr><td>⋮</td><td>⋮</td><td>⋮</td></tr>
+            <tr><td>Muere el penúltimo año</td><td>\(\Cc\V^{n-1}\)</td><td>\(\qd{n-2}{x}\)</td></tr>
+            <tr><td>Muere el último año</td><td>\(\Cc\V^{n}\)</td><td>\(\qd{n-1}{x}\)</td></tr>
+            <tr><td>Sobrevive</td><td>\(0\)</td><td>\(\pn{n}{x}\)</td></tr>
+            <tr><td></td><td></td><td>①</td></tr>
+          </tbody></table></div>
+      </div>
+    </section>
+
+    <section class="panel" id="s-cd">
+      <h2><span class="n">2</span>Capital diferido (dotal) n años <span class="sym">Ax:n¹ = ₙEx</span></h2>
+      <div class="two-col">
+        <div class="stack">
+          <div class="prose"><p>Obligación que se paga <strong>en caso de supervivencia</strong> a x + n. El <strong>seguro dotal</strong> de los apuntes (se contrata para un niño y cobra a cierta edad) es un capital diferido. Su esperanza es el factor financiero-actuarial \({}_nE_x=\V^n\,\pn{n}{x}\).</p></div>
+          <div class="tl" data-tl="cd"></div>
+          <div class="formula-box"><div class="ttl">Momento de orden k</div>
+            <div class="tex">\[E\big[A_{x:\an{n}}^{\;\;1}\big]^{k}=\big(\Cc\,\V^{\,n}\big)^{k}\,\pn{n}{x}\;+\;0^{k}\,\qn{n}{x}\]</div>
+            <div class="cap">Conmutación: \({}_nE_x=D_{x+n}/D_x\). Es una Bernoulli escalada: \(\sigma^2=(\Cc\V^n)^2\,\pn{n}{x}\,\qn{n}{x}\).</div></div>
+        </div>
+        <div class="table-scroll"><table class="ct">
+          <thead><tr><th>Suceso</th><th>Valor</th><th>Prob.</th></tr></thead>
+          <tbody>
+            <tr><td>Fallece antes de x+n</td><td>\(0\)</td><td>\(\qn{n}{x}\)</td></tr>
+            <tr><td>Sobrevive a x+n</td><td>\(\Cc\V^{n}\)</td><td>\(\pn{n}{x}\)</td></tr>
+            <tr><td></td><td></td><td>①</td></tr>
+          </tbody></table></div>
+      </div>
+    </section>
+
+    <section class="panel" id="s-mix">
+      <h2><span class="n">3</span>Seguro mixto n años <span class="sym">Ax:n</span></h2>
+      <div class="two-col">
+        <div class="stack">
+          <div class="prose"><p>Suma de un temporal y un capital diferido con el mismo capital. <strong>Siempre se paga</strong>: si fallece en los n años, al final del año de fallecimiento; si sobrevive, en n. Por eso la última fila agrupa «muere el último año o sobrevive».</p></div>
+          <div class="tl" data-tl="mix"></div>
+          <div class="formula-box"><div class="ttl">Momento de orden k</div>
+            <div class="tex">\[E\big[A_{x:\an{n}}\big]^{k}=\sum_{i=1}^{n}\big(\Cc\,\V^{\,i}\big)^{k}\,\qd{i-1}{x}+\big(\Cc\,\V^{\,n}\big)^{k}\,\pn{n}{x}\]</div>
+            <div class="cap">Dentro del sumatorio el exponente es \(\V^{\,i}\), no \(\V^{\,n}\). Conmutación: \(A_{x:\an n}=\dfrac{M_x-M_{x+n}+D_{x+n}}{D_x}\).</div></div>
+        </div>
+        <div class="table-scroll"><table class="ct">
+          <thead><tr><th>Suceso</th><th>Valor</th><th>Prob.</th></tr></thead>
+          <tbody>
+            <tr><td>Muere el 1.er año</td><td>\(\Cc\V\)</td><td>\(q_x\)</td></tr>
+            <tr><td>Muere el 2.º año</td><td>\(\Cc\V^2\)</td><td>\(\qd{1}{x}\)</td></tr>
+            <tr><td>⋮</td><td>⋮</td><td>⋮</td></tr>
+            <tr><td>Muere el último año o sobrevive</td><td>\(\Cc\V^{n}\)</td><td>\(\qd{n-1}{x}+\pn{n}{x}=\pn{n-1}{x}\)</td></tr>
+            <tr><td></td><td></td><td>①</td></tr>
+          </tbody></table></div>
+      </div>
+    </section>
+
+    <section class="panel" id="s-ve">
+      <h2><span class="n">4</span>Seguro de vida entera <span class="sym">Ax</span></h2>
+      <div class="two-col">
+        <div class="stack">
+          <div class="prose"><p>Paga \(\Cc\) al final del año de fallecimiento, ocurra cuando ocurra. Es un temporal con \(n=\omega-x+1\): la última fila es fallecer con edad ω, pagado en ω + 1.</p></div>
+          <div class="tl" data-tl="ve"></div>
+          <div class="formula-box"><div class="ttl">Momento de orden k</div>
+            <div class="tex">\[E\big[A_{x}\big]^{k}=\sum_{i=1}^{\omega-x+1}\big(\Cc\,\V^{\,i}\big)^{k}\,\qd{i-1}{x}\]</div>
+            <div class="cap">Equivalencia: \(A_x=A^1_{x:\an{\omega-x+1}}\). Conmutación: \(A_x=M_x/D_x\). No hay fila de valor 0: el pago es seguro, lo aleatorio es cuándo.</div></div>
+        </div>
+        <div class="table-scroll"><table class="ct">
+          <thead><tr><th>Suceso</th><th>Valor</th><th>Prob.</th></tr></thead>
+          <tbody>
+            <tr><td>Muere el 1.er año</td><td>\(\Cc\V\)</td><td>\(q_x={}_{0|}q_x\)</td></tr>
+            <tr><td>Muere el 2.º año</td><td>\(\Cc\V^2\)</td><td>\(\qd{1}{x}\)</td></tr>
+            <tr><td>⋮</td><td>⋮</td><td>⋮</td></tr>
+            <tr><td>Muere con ω − 1</td><td>\(\Cc\V^{\omega-x}\)</td><td>\(\qd{\omega-x-1}{x}\)</td></tr>
+            <tr><td>Muere con ω</td><td>\(\Cc\V^{\omega-x+1}\)</td><td>\(\qd{\omega-x}{x}\)</td></tr>
+            <tr><td></td><td></td><td>①</td></tr>
+          </tbody></table></div>
+      </div>
+    </section>
+
+    <section class="panel" id="s-dif">
+      <h2><span class="n">5</span>Seguros diferidos m años <span class="sym">m|A¹x:n · m|Ax</span></h2>
+      <div class="two-col">
+        <div class="stack">
+          <div class="prose"><p>La cobertura de fallecimiento empieza tras un <strong>diferimiento</strong> (carencia) de m años. Puede ser <strong>temporal</strong> n años o <strong>vida entera</strong>. En vida entera el diferimiento se le resta a la duración: \(n=(\omega-x)+1-m\).</p></div>
+          <div class="tl" data-tl="dif"></div>
+          <div class="formula-box"><div class="ttl">Momento de orden k</div>
+            <div class="tex">\[E\big[{}_{m|}A^{1}_{x:\an{n}}\big]^{k}=\sum_{i=1}^{n}\big(\Cc\,\V^{\,m+i}\big)^{k}\,\qd{m+i-1}{x}+0^{k}\big(\qn{m}{x}+\pn{m+n}{x}\big)\]</div>
+            <div class="tex">\[{}_{m|}A_x={}_{m|}A^1_{x:\an{(\omega-x)+1-m}}\qquad A_x=A^1_{x:\an{(\omega-x)+1}}\]</div>
+            <div class="cap">Conmutación: \({}_{m|}A^1_{x:\an n}=\dfrac{M_{x+m}-M_{x+m+n}}{D_x}\), \({}_{m|}A_x=\dfrac{M_{x+m}}{D_x}\).</div></div>
+        </div>
+        <div class="table-scroll"><table class="ct">
+          <thead><tr><th>Suceso</th><th>Valor</th><th>Prob.</th></tr></thead>
+          <tbody>
+            <tr><td>Muere el año m + 1</td><td>\(\Cc\V^{m+1}\)</td><td>\(\qd{m}{x}\)</td></tr>
+            <tr><td>Muere el año m + 2</td><td>\(\Cc\V^{m+2}\)</td><td>\(\qd{m+1}{x}\)</td></tr>
+            <tr><td>⋮</td><td>⋮</td><td>⋮</td></tr>
+            <tr><td>Muere el año m + n</td><td>\(\Cc\V^{m+n}\)</td><td>\(\qd{m+n-1}{x}\)</td></tr>
+            <tr><td>Muere en el diferimiento o sobrevive</td><td>\(0\)</td><td>\(\qn{m}{x}+\pn{m+n}{x}\)</td></tr>
+            <tr><td></td><td></td><td>①</td></tr>
+          </tbody></table>
+          <p class="muted" style="font-size:.78rem; padding:8px 12px">En vida entera diferido la fila 0 es solo \(\qn{m}{x}\).</p></div>
+      </div>
+    </section>
+
+    <section class="panel" id="s-comb">
+      <h2><span class="n">6</span>Combinaciones de coberturas</h2>
+      <div class="two-col">
+        <div class="prose">
+          <p>Los ejercicios combinan coberturas sobre la misma vida, por ejemplo <strong>1.000.000 € si fallece antes de los 65 y 500.000 € después</strong>:</p>
+          <div class="tex">\[1\,000\,000\,A^1_{23:\an{42}}+500\,000\;{}_{42|}A_{23}\]</div>
+          <p>Como las dos coberturas <strong>no pueden pagar a la vez</strong> (Z<sub>1</sub>·Z<sub>2</sub> = 0), los momentos de cualquier orden se suman:</p>
+          <div class="tex">\[E\big[(Z_1+Z_2)^k\big]=E[Z_1^k]+E[Z_2^k]\]</div>
+          <p>La <strong>varianza no se suma</strong>: \(\mathrm{Var}(Z_1+Z_2)=\mathrm{Var}Z_1+\mathrm{Var}Z_2-2E[Z_1]E[Z_2]\). En el ejemplo, la combinación cubre toda la vida, así que la fila de valor 0 desaparece.</p>
+        </div>
+        <div class="stack">
+          <div class="tl" data-tl="comb"></div>
+          <div class="table-scroll"><table class="ct">
+            <thead><tr><th>Suceso</th><th>Valor</th><th>Prob.</th></tr></thead>
+            <tbody>
+              <tr><td>Muere el 1.er año</td><td>\(1\,000\,000\,\V\)</td><td>\(q_{23}\)</td></tr>
+              <tr><td>⋮</td><td>⋮</td><td>⋮</td></tr>
+              <tr><td>Muere el año 42 (antes de los 65)</td><td>\(1\,000\,000\,\V^{42}\)</td><td>\(\qd{41}{23}\)</td></tr>
+              <tr><td>Muere el año 43</td><td>\(500\,000\,\V^{43}\)</td><td>\(\qd{42}{23}\)</td></tr>
+              <tr><td>⋮</td><td>⋮</td><td>⋮</td></tr>
+              <tr><td>Muere con ω</td><td>\(500\,000\,\V^{98}\)</td><td>\(\qd{97}{23}\)</td></tr>
+              <tr><td></td><td></td><td>①</td></tr>
+            </tbody></table></div>
+        </div>
+      </div>
+    </section>
+  </section>
+  <section class="subview" id="sv-ren" hidden>
+    <section class="panel">
+      <h2><span class="n">1</span>Rentas financieras <span class="sym">valores de la tabla de contingencia</span></h2>
+      <div class="two-col">
+        <div class="stack">
+          <div class="formula-grid" style="grid-template-columns:minmax(0,1fr)">
+            <div class="formula-box"><div class="ttl">Pospagable · valor actual</div><div class="tex">\(a_{\an n}=\sum_{i=1}^{n}\V^{\,i}=\frac{1-(1+i)^{-n}}{i}\)</div></div>
+            <div class="formula-box"><div class="ttl">Prepagable · valor actual</div><div class="tex">\(\ddot a_{\an n}=\sum_{i=1}^{n}\V^{\,i-1}=(1+i)\,a_{\an n}\)</div></div>
+            <div class="formula-box"><div class="ttl">Pospagable · valor final</div><div class="tex">\(s_{\an n}=\sum_{i=1}^{n}(1+i)^{n-i}=\frac{(1+i)^n-1}{i}\)</div></div>
+            <div class="formula-box"><div class="ttl">Prepagable · valor final</div><div class="tex">\(\ddot s_{\an n}=\sum_{i=1}^{n}(1+i)^{n-i+1}\)</div></div>
+          </div>
+          <div class="formula-box"><div class="ttl">Fraccionadas <span class="tag">m pagos al año de C/m</span></div>
+            <div class="tex">\[a^{(m)}_{\an n}=\sum_{i=1}^{nm}\tfrac1m\V^{\,i/m}\qquad \ddot a^{(m)}_{\an n}=\sum_{i=1}^{nm}\tfrac1m\V^{\,\frac{i-1}{m}}\]</div>
+            <div class="cap">m = 1 anual, 2 semestral, 3 cuatrimestral, 4 trimestral, 6 bimestral, 12 mensual. Tipo equivalente: \(i_m=(1+i)^{1/m}-1\).</div></div>
+          <div class="formula-box"><div class="ttl">Diferidas k años <span class="tag">carencia</span></div>
+            <div class="tex">\[{}_{k|}a^{(m)}_{\an n}=\V^{k}a^{(m)}_{\an n}=\sum_{i=1}^{nm}\tfrac1m\V^{\frac im+k}\qquad {}_{k|}\ddot a^{(m)}_{\an n}=\V^{k}\ddot a^{(m)}_{\an n}\]</div></div>
+        </div>
+        <div class="stack">
+          <div class="formula-box"><div class="ttl">Progresión geométrica <span class="tag">razón 1+π</span></div>
+            <div class="tex">\[\sum_{t=1}^{n}\frac{C(1+\pi)^t}{(1+I)^t}=C\,a_{\an n\,R},\qquad 1+R=\frac{1+I}{1+\pi}\]</div>
+            <div class="cap">Es una renta constante valorada al tipo de interés real R.</div></div>
+          <div class="formula-box"><div class="ttl">Ejemplo · bono</div>
+            <p style="font-size:.85rem; color:var(--ink-soft)">Nominal 1.000 €, cupón 3 % anual, 10 años, prima de amortización 100 €, i = 5 %:</p>
+            <div class="tex">\[30\,a_{\an 9\,0{,}05}+1130\,(1{,}05)^{-10}=213{,}2347+693{,}7220=906{,}9567\ \text{euros}\]</div></div>
+          <div class="formula-box"><div class="ttl">Ejemplo · hipoteca francesa</div>
+            <p style="font-size:.85rem; color:var(--ink-soft)">200.000 € a 20 años, 4 % efectivo anual, cuotas constantes prepagables:</p>
+            <div class="tex">\[i_{12}=1{,}04^{1/12}-1=0{,}003274\quad c=\frac{200\,000}{\ddot a_{\an{240}\,i_{12}}}=\frac{200\,000}{166{,}5917}\approx1\,200{,}60\ \text{euros}\]</div>
+            <div class="cap">Semestral: \(i_2=0{,}019804\) y \(c\approx 7\,144{,}57\) €.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">2</span>Renta actuarial temporal <span class="sym">äx:n · ax:n</span></h2>
+      <div class="prose" style="margin-bottom:14px"><p>Renta financiera cuyo <strong>número de pagos depende de lo que vivas</strong>. El valor de cada fila es una renta financiera de tantos términos como pagos cobrados. Para la compañía el peor caso es que el asegurado sobreviva todo el plazo.</p></div>
+      <div class="two-col">
+        <div class="stack">
+          <h3>Prepagable</h3>
+          <div class="table-scroll"><table class="ct">
+            <thead><tr><th>Suceso</th><th>Valor</th><th>Prob.</th></tr></thead>
+            <tbody>
+              <tr><td>Muere el 1.er año (cobra 1)</td><td>\(\ddot a_{\an 1}\)</td><td>\(q_x\)</td></tr>
+              <tr><td>Muere el 2.º año (cobra 2)</td><td>\(\ddot a_{\an 2}\)</td><td>\(\qd{1}{x}\)</td></tr>
+              <tr><td>⋮</td><td>⋮</td><td>⋮</td></tr>
+              <tr><td>Muere el año n o sobrevive</td><td>\(\ddot a_{\an n}\)</td><td>\(\qd{n-1}{x}+\pn{n}{x}=\pn{n-1}{x}\)</td></tr>
+            </tbody></table></div>
+          <div class="tex">\[E\big[\ddot a_{x:\an n}\big]^{k}=\sum_{i=1}^{n}\big(\ddot a_{\an i}\big)^{k}\,\qd{i-1}{x}+\big(\ddot a_{\an n}\big)^{k}\,\pn{n}{x}\]</div>
+          <div class="cap muted" style="font-size:.8rem">En la prepagable hay un desfase: el primer pago se cobra aunque se muera ese año.</div>
+        </div>
+        <div class="stack">
+          <h3>Pospagable</h3>
+          <div class="table-scroll"><table class="ct">
+            <thead><tr><th>Suceso</th><th>Valor</th><th>Prob.</th></tr></thead>
+            <tbody>
+              <tr><td>Muere el 1.er año</td><td>\(a_{\an 0}=0\)</td><td>\(q_x\)</td></tr>
+              <tr><td>Muere el 2.º año</td><td>\(a_{\an 1}\)</td><td>\(\qd{1}{x}\)</td></tr>
+              <tr><td>⋮</td><td>⋮</td><td>⋮</td></tr>
+              <tr><td>Muere el año n</td><td>\(a_{\an{n-1}}\)</td><td>\(\qd{n-1}{x}\)</td></tr>
+              <tr><td>Sobrevive</td><td>\(a_{\an n}\)</td><td>\(\pn{n}{x}\)</td></tr>
+            </tbody></table></div>
+          <div class="tex">\[E\big[a_{x:\an n}\big]^{k}=\sum_{i=1}^{n}\big(a_{\an{i-1}}\big)^{k}\,\qd{i-1}{x}+\big(a_{\an n}\big)^{k}\,\pn{n}{x}\]</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">3</span>Rentas fraccionadas y vitalicias <span class="sym">ä(m)x:n · äx · ä(m)x</span></h2>
+      <div class="two-col">
+        <div class="stack">
+          <div class="prose"><p>Con m pagos al año cada fila es un subperiodo de 1/m año, y la probabilidad es fallecer en ese subperiodo: \({}_{\frac{i-1}{m}|\frac1m}q_x\). Hace falta interpolar dentro del año (ver Fundamentos 3).</p></div>
+          <div class="formula-box"><div class="ttl">Temporal fraccionada prepagable</div>
+            <div class="tex">\[E\big[\ddot a^{(m)}_{x:\an n}\big]^{k}=\sum_{i=1}^{nm}\Big(\ddot a^{(m)}_{\an{i/m}}\Big)^{k}\,{}_{\frac{i-1}{m}|\frac1m}q_x+\Big(\ddot a^{(m)}_{\an n}\Big)^{k}\,\pn{n}{x}\]</div></div>
+          <div class="formula-box"><div class="ttl">Temporal fraccionada pospagable</div>
+            <div class="tex">\[E\big[a^{(m)}_{x:\an n}\big]^{k}=\sum_{i=1}^{nm}\Big(a^{(m)}_{\an{\frac{i-1}{m}}}\Big)^{k}\,{}_{\frac{i-1}{m}|\frac1m}q_x+\Big(a^{(m)}_{\an n}\Big)^{k}\,\pn{n}{x}\]</div></div>
+        </div>
+        <div class="stack">
+          <div class="prose"><p>La <strong>renta vitalicia</strong> (planes de pensiones) dura hasta el fallecimiento: \(n=(\omega+1)-x\).</p></div>
+          <div class="formula-box"><div class="ttl">Vitalicia anual</div>
+            <div class="tex">\[E[\ddot a_x]^{k}=\sum_{i=1}^{(\omega+1)-x}\big(\ddot a_{\an i}\big)^{k}\,\qd{i-1}{x}\qquad E[a_x]^{k}=\sum_{i=1}^{(\omega+1)-x}\big(a_{\an{i-1}}\big)^{k}\,\qd{i-1}{x}\]</div></div>
+          <div class="formula-box"><div class="ttl">Vitalicia fraccionada (emésima)</div>
+            <div class="tex">\[E\big[\ddot a^{(m)}_x\big]^{k}=\sum_{i=1}^{((\omega+1)-x)m}\Big(\ddot a^{(m)}_{\an{i/m}}\Big)^{k}\,{}_{\frac{i-1}{m}|\frac1m}q_x\]</div>
+            <div class="cap">Pospagable: el valor de la fila i es \(a^{(m)}_{\an{(i-1)/m}}\).</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">4</span>Rentas diferidas <span class="sym">k|ä(m)x · k|a(m)x</span></h2>
+      <div class="two-col">
+        <div class="stack">
+          <div class="prose"><p>El primer pago llega tras k años. Si fallece durante el diferimiento el valor es 0. En la pospagable también vale 0 si fallece en el primer subperiodo tras el diferimiento.</p></div>
+          <div class="tl" data-tl="renta"></div>
+          <div class="formula-box"><div class="ttl">Prepagable diferida</div>
+            <div class="tex">\[E\big[{}_{k|}\ddot a^{(m)}_x\big]^{k'}=\sum_{i=1}^{((\omega+1)-x-k)m}\Big({}_{k|}\ddot a^{(m)}_{\an{i/m}}\Big)^{k'}{}_{k+\frac{i-1}{m}|\frac1m}q_x+0^{k'}\,\qn{k}{x}\]</div></div>
+          <div class="formula-box"><div class="ttl">Pospagable diferida</div>
+            <div class="tex">\[E\big[{}_{k|}a^{(m)}_x\big]^{k'}=\sum_{i=1}^{((\omega+1)-x-k)m}\Big({}_{k|}a^{(m)}_{\an{\frac{i-1}{m}}}\Big)^{k'}{}_{k+\frac{i-1}{m}|\frac1m}q_x\]</div>
+            <div class="cap">Aquí k es el diferimiento y k′ el orden del momento; en los apuntes se usa L para no confundirlos.</div></div>
+        </div>
+        <div class="stack">
+          <div class="table-scroll"><table class="ct">
+            <thead><tr><th>Suceso</th><th>Valor</th><th>Prob.</th></tr></thead>
+            <tbody>
+              <tr><td>Muere en el diferimiento</td><td>\(0\)</td><td>\(\qn{k}{x}\)</td></tr>
+              <tr><td>Cobra 1 pago</td><td>\({}_{k|}\ddot a^{(m)}_{\an{1/m}}=\tfrac1m\V^{k}\)</td><td>\({}_{k|\frac1m}q_x\)</td></tr>
+              <tr><td>Cobra 2 pagos</td><td>\({}_{k|}\ddot a^{(m)}_{\an{2/m}}\)</td><td>\({}_{k+\frac1m|\frac1m}q_x\)</td></tr>
+              <tr><td>⋮</td><td>⋮</td><td>⋮</td></tr>
+              <tr><td>Cobra todos</td><td>\({}_{k|}\ddot a^{(m)}_{\an{\omega+1-x-k}}\)</td><td>\({}_{\omega+1-x-\frac1m|\frac1m}q_x\)</td></tr>
+            </tbody></table></div>
+          <div class="callout info"><span class="ic">i</span><span><b>Cuantía.</b> En los apuntes la renta se expresa con la cuantía anual: 1.000 €/mes es \(12\,000\cdot{}_{20|}\ddot a^{(12)}_{45}\), porque \(\ddot a^{(m)}\) ya lleva el factor 1/m en cada pago.</span></div>
+        </div>
+      </div>
+    </section>
+  </section>
+  </section>
+
+
+  <!-- ===================== CALCULADORA ===================== -->
+  <section class="view" id="view-calc" hidden>
+  <section class="panel">
+    <h2><span class="n">1</span>Bases técnicas</h2>
+    <div class="controls-grid">
+      <div class="field wide">
+        <label for="in-tabla">Tabla de mortalidad</label>
+        <select id="in-tabla">
+          <optgroup label="2020 · 2.º orden (mejor estimación)">
+            <option value="PER2020_Ind_2o">PER2020 Individual · supervivencia</option>
+            <option value="PER2020_Col_2o">PER2020 Colectivo · supervivencia</option>
+            <option value="PASEM2020_General_2o">PASEM2020 General · riesgo</option>
+            <option value="PASEM2020_Decesos_2o">PASEM2020 Decesos</option>
+          </optgroup>
+          <optgroup label="2020 · 1.er orden (con recargos)">
+            <option value="PER2020_Ind_1er">PER2020 Individual</option>
+            <option value="PER2020_Col_1er">PER2020 Colectivo</option>
+            <option value="PASEM2020_Rel_1er">PASEM2020 Vida-riesgo relacionado</option>
+            <option value="PASEM2020_NoRel_1er">PASEM2020 Vida-riesgo no relacionado</option>
+            <option value="PASEM2020_Decesos_1er">PASEM2020 Decesos</option>
+          </optgroup>
+        </select>
+        <span class="hint" id="tabla-hint"></span>
+      </div>
+      <div class="field">
+        <span class="lbl">Sexo</span>
+        <div class="seg" id="in-sexo"><button type="button" data-v="M">Mujer</button><button type="button" data-v="H" class="active">Hombre</button></div>
+      </div>
+      <div class="field">
+        <label for="in-x">Edad x</label>
+        <input id="in-x" type="number" min="0" max="119" step="1" value="45">
+      </div>
+      <div class="field" id="f-anio">
+        <label for="in-anio">Año de cálculo</label>
+        <input id="in-anio" type="number" min="1950" max="2100" step="1" value="2026">
+        <span class="hint" id="nac-hint"></span>
+      </div>
+      <div class="field">
+        <label for="in-i">Interés técnico i (%)</label>
+        <input id="in-i" type="number" min="0" max="30" step="0.05" value="3">
+        <span class="hint" id="v-hint"></span>
+      </div>
+    </div>
+  </section>
+    <div class="subnav" data-group="cv"><button data-sub="seg" class="active">Seguros</button><button data-sub="ren">Rentas</button><button data-sub="con">Tabla de conmutación</button></div>
+  <section class="subview" id="cv-seg">
+    <section class="panel">
+      <h2><span class="n">2</span>Contrato de seguro</h2>
+      <div class="controls-grid">
+        <div class="field wide">
+          <label for="s-tipo">Tipo de seguro</label>
+          <select id="s-tipo">
+            <option value="temp">Temporal n años · A¹x:n</option>
+            <option value="cd">Capital diferido / dotal · nEx</option>
+            <option value="mix">Mixto n años · Ax:n</option>
+            <option value="ve">Vida entera · Ax</option>
+            <option value="dt">Diferido temporal · m|A¹x:n</option>
+            <option value="dve">Vida entera diferido · m|Ax</option>
+            <option value="comb">Temporal C₁ + vida entera diferido C₂</option>
+          </select>
+        </div>
+        <div class="field" data-s="C"><label for="s-C" id="s-C-l">Capital C (€)</label><input id="s-C" type="number" min="0" step="1000" value="100000"></div>
+        <div class="field" data-s="C2"><label for="s-C2" id="s-C2-l">Capital C₂ (€)</label><input id="s-C2" type="number" min="0" step="1000" value="50000"></div>
+        <div class="field" data-s="m"><label for="s-m" id="s-m-l">Diferimiento m</label><input id="s-m" type="number" min="0" max="120" step="1" value="10"></div>
+        <div class="field" data-s="n"><label for="s-n" id="s-n-l">Duración n</label><input id="s-n" type="number" min="1" max="121" step="1" value="20"></div>
+      </div>
+      <div class="symbol-line"><span class="eyebrow">Símbolo</span><span class="big" id="s-sym">–</span><span id="s-desc"></span></div>
+      <div class="note warn" id="s-warn" hidden></div>
+    </section>
+
+    <section class="cards-grid" aria-live="polite" id="s-cards"></section>
+
+    <section class="panel">
+      <h2><span class="n">3</span>Distribución del valor actual Z</h2>
+      <div class="charts">
+        <div class="chart-box"><h3>Probabilidad por valor de Z</h3><svg class="chart" id="s-hist" viewBox="0 0 520 250"></svg><div class="tip" id="s-hist-tip"></div><div class="legend-row" id="s-hist-leg"></div></div>
+        <div class="chart-box"><h3>Supervivencia ₜpₓ y periodos cubiertos</h3><svg class="chart" id="s-surv" viewBox="0 0 520 250"></svg><div class="legend-row" id="s-surv-leg"></div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">4</span>Momentos de orden k y comprobación</h2>
+      <div class="two">
+        <div class="table-scroll"><table id="s-mom"></table></div>
+        <div style="display:flex; flex-direction:column; gap:10px" id="s-check"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">5</span>Tabla de contingencia</h2>
+      <div class="row-actions" style="margin-bottom:10px">
+        <span class="eyebrow">Columna valorᵏ · prob con k =</span>
+        <div class="seg" id="s-k" style="width:auto"><button type="button" data-v="1" class="active">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button></div>
+        <button class="btn" type="button" id="s-csv">Copiar como CSV</button><span class="hint" id="s-csv-msg" hidden>Copiado</span>
+      </div>
+      <div class="table-scroll tall"><table id="s-ct"></table></div>
+      <textarea id="s-csv-out" readonly hidden style="margin-top:10px"></textarea>
+    </section>
+  </section>
+  <section class="subview" id="cv-ren" hidden>
+    <section class="panel">
+      <h2><span class="n">2</span>Renta actuarial</h2>
+      <div class="controls-grid">
+        <div class="field"><span class="lbl">Modalidad</span>
+          <div class="seg" id="r-mod"><button type="button" data-v="pre" class="active">Prepagable</button><button type="button" data-v="post">Pospagable</button></div></div>
+        <div class="field"><span class="lbl">Duración</span>
+          <div class="seg" id="r-dur"><button type="button" data-v="vit" class="active">Vitalicia</button><button type="button" data-v="temp">Temporal</button></div></div>
+        <div class="field" id="r-n-f"><label for="r-n">Duración n (años)</label><input id="r-n" type="number" min="1" max="121" step="1" value="10"></div>
+        <div class="field"><label for="r-k">Diferimiento k (años)</label><input id="r-k" type="number" min="0" max="120" step="1" value="20"></div>
+        <div class="field"><label for="r-m">Pagos al año m</label>
+          <select id="r-m"><option value="1">1 · anual</option><option value="2">2 · semestral</option><option value="3">3 · cuatrimestral</option><option value="4">4 · trimestral</option><option value="6">6 · bimestral</option><option value="12" selected>12 · mensual</option></select></div>
+        <div class="field"><label for="r-c">Cuantía de cada pago (€)</label><input id="r-c" type="number" min="0" step="50" value="1000"><span class="hint" id="r-c-hint"></span></div>
+        <div class="field"><label for="r-g">Crecimiento anual</label>
+          <select id="r-g"><option value="none">Constante</option><option value="geo">Progresión geométrica (1+π)</option></select></div>
+        <div class="field" id="r-pi-f"><label for="r-pi">π anual (%)</label><input id="r-pi" type="number" step="0.1" value="2"></div>
+      </div>
+      <div class="symbol-line"><span class="eyebrow">Símbolo</span><span class="big" id="r-sym">–</span><span id="r-desc"></span></div>
+      <div class="note warn" id="r-warn" hidden></div>
+    </section>
+
+    <section class="cards-grid" aria-live="polite" id="r-cards"></section>
+
+    <section class="panel">
+      <h2><span class="n">3</span>Distribución del valor actual Y</h2>
+      <div class="charts">
+        <div class="chart-box"><h3>Probabilidad por valor de Y</h3><svg class="chart" id="r-hist" viewBox="0 0 520 250"></svg><div class="tip" id="r-hist-tip"></div><div class="legend-row" id="r-hist-leg"></div></div>
+        <div class="chart-box"><h3>Supervivencia ₜpₓ y periodo de pagos</h3><svg class="chart" id="r-surv" viewBox="0 0 520 250"></svg><div class="legend-row" id="r-surv-leg"></div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">4</span>Momentos de orden k y comprobación</h2>
+      <div class="two">
+        <div class="table-scroll"><table id="r-mom"></table></div>
+        <div style="display:flex; flex-direction:column; gap:10px" id="r-check"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">5</span>Tabla de contingencia</h2>
+      <div class="row-actions" style="margin-bottom:10px">
+        <span class="eyebrow">Columna valorᵏ · prob con k =</span>
+        <div class="seg" id="r-k2" style="width:auto"><button type="button" data-v="1" class="active">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button></div>
+        <button class="btn" type="button" id="r-csv">Copiar como CSV</button><span class="hint" id="r-csv-msg" hidden>Copiado</span>
+      </div>
+      <div class="table-scroll tall"><table id="r-ct"></table></div>
+      <textarea id="r-csv-out" readonly hidden style="margin-top:10px"></textarea>
+    </section>
+  </section>
+  <section class="subview" id="cv-con" hidden>
+    <section class="panel">
+      <h2><span class="n">2</span>Tabla de conmutación <span class="sym" id="c-title"></span></h2>
+      <p class="hint" style="margin-bottom:12px">Columnas de la hoja «Generación tablas» de clase: raíz l₀ = 10.000.000, D<sub>x</sub> = v<sup>x</sup>l<sub>x</sub>, C<sub>x</sub> = v<sup>x+1</sup>d<sub>x</sub>, N, S, M, R acumulados desde x hasta ω. Usa la generación (año de cálculo − x) de las bases técnicas. La fila resaltada es la edad x.</p>
+      <div class="row-actions" style="margin-bottom:10px">
+        <button class="btn" type="button" id="c-csv">Copiar como CSV</button><span class="hint" id="c-csv-msg" hidden>Copiado</span>
+      </div>
+      <div class="table-scroll tall" style="max-height:520px"><table id="c-table"></table></div>
+      <textarea id="c-csv-out" readonly hidden style="margin-top:10px"></textarea>
+    </section>
+  </section>
+  </section>
+
+  <!-- ===================== EJERCICIOS ===================== -->
+  <section class="view" id="view-ej" hidden>
+    <section class="panel">
+      <h2><span class="n">1</span>Ejercicios de clase resueltos</h2>
+      <div class="prose" style="max-width:none; margin-bottom:14px">
+        <p>Resultados de cada ejercicio de los apuntes con estas hipótesis: valoración en 2026 (año de nacimiento = 2026 − x), <strong>i = 3 %</strong>, pago al final del año, fraccionamiento exacto con interpolación lineal. Fallecimiento y mixtos con <strong>PASEM2020 General 2.º orden</strong>; supervivencia y rentas con <strong>PER2020 Individual 2.º orden</strong>. Donde los apuntes no fijan capital se usa el marcado con *.</p>
+      </div>
+      <div class="row-actions" style="display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap">
+        <span class="eyebrow">Sexo</span>
+        <div class="seg" id="ej-sex" style="width:auto"><button type="button" data-v="H" class="active">Hombre</button><button type="button" data-v="M">Mujer</button></div>
+      </div>
+      <div class="table-scroll"><table id="ej-table"></table></div>
+      <p class="muted" style="font-size:.8rem; margin-top:10px">E = prima única pura · σ = desviación típica · CV = σ/E · γ<sub>1</sub> asimetría · γ<sub>2</sub> curtosis. Todos se pueden reproducir y modificar en el laboratorio.</p>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">2</span>Erratas y puntos a revisar en los apuntes</h2>
+      <div class="err-list" id="err-list"></div>
+    </section>
+    <section class="panel">
+      <h2><span class="n">2</span>Ejemplos de los apuntes</h2>
+      <p class="hint" style="margin-bottom:14px">Cada botón carga el ejercicio con las bases del dosier: año 2026, i = 3 %, PASEM2020 General 2.º orden para fallecimiento y mixtos, PER2020 Individual 2.º orden para supervivencia y rentas. Se mantiene el sexo elegido. Los capitales marcados con * no vienen en los apuntes.</p>
+      <div class="ex-grid" id="ex-grid"></div>
+    </section>
+  </section>
+  <section class="view" id="view-glo" hidden>
+    <section class="panel">
+      <h2>Glosario</h2>
+      <div class="gl-tools">
+        <input type="search" id="gl-search" placeholder="Buscar término, símbolo o categoría…" aria-label="Buscar en el glosario">
+        <div class="tabs" id="gl-cats"></div>
+      </div>
+      <div class="gl-grid" id="gl-grid"></div>
+      <p class="muted" id="gl-empty" hidden>Ningún término coincide con la búsqueda.</p>
+    </section>
+  </section>
+  <footer>
+    <span>Autor: Álvaro Insua Muñoz · Máster en Ciencias Actuariales y Financieras (UC3M)</span>
+    <span>Tablas: <a href="https://www.boe.es/buscar/doc.php?id=BOE-A-2020-17154" target="_blank" rel="noopener">BOE-A-2020-17154</a> (PER/PASEM 2020). Material de estudio; no sustituye las bases técnicas de una entidad.</span>
+  </footer>
+</div>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']],
+    macros: {
+      V: '{\\color[RGB]{240,162,78}{v}}',
+      Cc: '{\\color[RGB]{95,194,224}{C}}',
+      qd: ['{\\color[RGB]{242,134,172}{{}_{#1|}q_{#2}}}', 2],
+      qn: ['{\\color[RGB]{242,134,172}{{}_{#1}q_{#2}}}', 2],
+      pn: ['{\\color[RGB]{53,217,196}{{}_{#1}p_{#2}}}', 2],
+      an: ['{\\overline{#1|}}', 1]
+    } },
+  svg: { fontCache: 'global' },
+  options: { ignoreHtmlClass: 'no-tex' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"></script>
+<script>
+(function(){
+'use strict';
+const EJ = [{"d": "Ej. 1 · Temporal hasta los 65, 23 años, 1.000.000 €", "sym": "1\\,000\\,000\\,A^1_{23:\\an{42}}", "t": "PASEM Gen.", "s": "H", "mu": 28167.066895978365, "sd": 106315.39265882166, "cv": 3.774457349480046, "g1": 4.089904376444892, "g2": 21.245048330678618}, {"d": "Ej. 1 · Temporal hasta los 65, 23 años, 1.000.000 €", "sym": "1\\,000\\,000\\,A^1_{23:\\an{42}}", "t": "PASEM Gen.", "s": "M", "mu": 13906.318545904327, "sd": 75973.69799781026, "cv": 5.463250230247742, "g1": 5.964950622868477, "g2": 42.27314977437678}, {"d": "Ej. 2 · 2.000.000 € si fallece entre los 60 y 70, 23 años", "sym": "2\\,000\\,000\\,{}_{37|}A^1_{23:\\an{10}}", "t": "PASEM Gen.", "s": "H", "mu": 37314.51725138964, "sd": 140381.77011704605, "cv": 3.762122103075528, "g1": 3.527487599771698, "g2": 13.57045061502407}, {"d": "Ej. 2 · 2.000.000 € si fallece entre los 60 y 70, 23 años", "sym": "2\\,000\\,000\\,{}_{37|}A^1_{23:\\an{10}}", "t": "PASEM Gen.", "s": "M", "mu": 17389.821777479057, "sd": 97536.9072338459, "cv": 5.6088503080671295, "g1": 5.474042872533335, "g2": 31.220887907849}, {"d": "Ej. 3 · 1.000.000 € hasta los 65 y 500.000 € después, 23 años", "sym": "A^1_{23:\\an{42}}+{}_{42|}A_{23}", "t": "PASEM Gen.", "s": "H", "mu": 97873.59555522844, "sd": 90460.58722135026, "cv": 0.9242593644197413, "g1": 4.121401976166726, "g2": 24.092188300401013}, {"d": "Ej. 3 · 1.000.000 € hasta los 65 y 500.000 € después, 23 años", "sym": "A^1_{23:\\an{42}}+{}_{42|}A_{23}", "t": "PASEM Gen.", "s": "M", "mu": 79591.04834533713, "sd": 66559.97077292143, "cv": 0.8362745830928721, "g1": 5.68576585907158, "g2": 43.35330352275784}, {"d": "Dotal · niño de 7 años, 200.000 € a los 23", "sym": "200\\,000\\,{}_{16}E_{7}", "t": "PER Ind.", "s": "H", "mu": 124522.82533223787, "sd": 3710.4657852210485, "cv": 0.02979747508395508, "g1": -33.53009299154655, "g2": 1125.2671360206282}, {"d": "Dotal · niño de 7 años, 200.000 € a los 23", "sym": "200\\,000\\,{}_{16}E_{7}", "t": "PER Ind.", "s": "M", "mu": 124557.31913872255, "sd": 3078.134825273508, "cv": 0.02471259695181231, "g1": -40.4404801931835, "g2": 1636.4324382531452}, {"d": "Caso 1 · Temporal 25 años, 30 años, 250.000 €", "sym": "250\\,000\\,A^1_{30:\\an{25}}", "t": "PASEM Gen.", "s": "H", "mu": 3591.3017856367637, "sd": 23107.2476306959, "cv": 6.434226085680744, "g1": 6.580604295866481, "g2": 46.70088517183384}, {"d": "Caso 1 · Temporal 25 años, 30 años, 250.000 €", "sym": "250\\,000\\,A^1_{30:\\an{25}}", "t": "PASEM Gen.", "s": "M", "mu": 1949.025167756504, "sd": 17103.604622564926, "cv": 8.775466271814565, "g1": 9.027789146211408, "g2": 86.3796346331561}, {"d": "Caso 2 · Capital diferido 25 años, 45 años, 200.000 €", "sym": "200\\,000\\,{}_{25}E_{45}", "t": "PER Ind.", "s": "H", "mu": 88699.24788116675, "sd": 24598.666240031733, "cv": 0.2773266609090909, "g1": -3.3285293239498612, "g2": 12.079107460394235}, {"d": "Caso 2 · Capital diferido 25 años, 45 años, 200.000 €", "sym": "200\\,000\\,{}_{25}E_{45}", "t": "PER Ind.", "s": "M", "mu": 91971.80823962907, "sd": 18067.541481766322, "cv": 0.19644651798833862, "g1": -4.893997488045723, "g2": 24.95121141299751}, {"d": "Caso 3 · Mixto 17 años, 45 años, 500.000 €", "sym": "500\\,000\\,A_{45:\\an{17}}", "t": "PASEM Gen.", "s": "H", "mu": 305320.8014417356, "sd": 16595.081145400967, "cv": 0.05435293326572709, "g1": 7.113010176431859, "g2": 58.113862394932674}, {"d": "Caso 3 · Mixto 17 años, 45 años, 500.000 €", "sym": "500\\,000\\,A_{45:\\an{17}}", "t": "PASEM Gen.", "s": "M", "mu": 303984.84157601563, "sd": 12288.673327188924, "cv": 0.04042528325911926, "g1": 9.98284886117249, "g2": 112.18441810847727}, {"d": "Caso 4 · Vida entera diferido 12 años, 45 años, 300.000 €", "sym": "300\\,000\\,{}_{12|}A_{45}", "t": "PASEM Gen.", "s": "H", "mu": 87983.57648245199, "sd": 33611.24335034159, "cv": 0.3820172433777483, "g1": 0.751536391233221, "g2": 4.79585208095361}, {"d": "Caso 4 · Vida entera diferido 12 años, 45 años, 300.000 €", "sym": "300\\,000\\,{}_{12|}A_{45}", "t": "PASEM Gen.", "s": "M", "mu": 79143.18949689697, "sd": 26746.99631108746, "cv": 0.33795701792048893, "g1": 1.337932252382096, "g2": 7.25991761266774}, {"d": "Caso 5 · 600.000 € antes de los 65 y 200.000 € después, 30 años", "sym": "A^1_{30:\\an{35}}+{}_{35|}A_{30}", "t": "PASEM Gen.", "s": "H", "mu": 53979.99751884198, "sd": 65340.47284562684, "cv": 1.21045712947318, "g1": 3.802340842488085, "g2": 18.16524221579159}, {"d": "Caso 5 · 600.000 € antes de los 65 y 200.000 € después, 30 años", "sym": "A^1_{30:\\an{35}}+{}_{35|}A_{30}", "t": "PASEM Gen.", "s": "M", "mu": 42150.51186622723, "sd": 48342.10928200224, "cv": 1.1468925795118512, "g1": 5.546456421022147, "g2": 36.61593101607048}, {"d": "Caso 6 · Dotal, niño de 6 años, 60.000 € a los 18", "sym": "60\\,000\\,{}_{12}E_{6}", "t": "PER Ind.", "s": "H", "mu": 42062.27068562544, "sd": 929.0894557993113, "cv": 0.02208842843372274, "g1": -45.25048508217981, "g2": 2048.606400170566}, {"d": "Caso 6 · Dotal, niño de 6 años, 60.000 € a los 18", "sym": "60\\,000\\,{}_{12}E_{6}", "t": "PER Ind.", "s": "M", "mu": 42065.960219674234, "sd": 841.4743854890609, "cv": 0.020003688994492598, "g1": -49.970775525529454, "g2": 2498.078406629084}, {"d": "Caso 7 · Mixto hasta los 65, 40 años, 150.000 €", "sym": "150\\,000\\,A_{40:\\an{25}}", "t": "PASEM Gen.", "s": "H", "mu": 72906.85105387401, "sd": 6452.210633374077, "cv": 0.08849937337996207, "g1": 6.5051381311469205, "g2": 50.87242480294408}, {"d": "Caso 7 · Mixto hasta los 65, 40 años, 150.000 €", "sym": "150\\,000\\,A_{40:\\an{25}}", "t": "PASEM Gen.", "s": "M", "mu": 72311.0451473115, "sd": 4856.990785212628, "cv": 0.06716803463866418, "g1": 9.143744228267071, "g2": 97.55546427726483}, {"d": "Caso 8 · Temporal 30 años, 30 años, C = 100.000 €*", "sym": "A^1_{30:\\an{30}}", "t": "PASEM Gen.", "s": "H", "mu": 2245.922005490088, "sd": 10851.324258496908, "cv": 4.831567717833111, "g1": 4.934384494206168, "g2": 27.33672132701241}, {"d": "Caso 8 · Temporal 30 años, 30 años, C = 100.000 €*", "sym": "A^1_{30:\\an{30}}", "t": "PASEM Gen.", "s": "M", "mu": 1168.409003770175, "sd": 7938.707610390186, "cv": 6.794459461347768, "g1": 7.036906631850517, "g2": 53.872604562651155}, {"d": "Caso 9 · Vida entera diferido 15 años, 30 años, C = 100.000 €*", "sym": "{}_{15|}A_{30}", "t": "PASEM Gen.", "s": "H", "mu": 19998.427275003058, "sd": 8378.083352538997, "cv": 0.4189371112703019, "g1": 1.8232610579706454, "g2": 7.4177627686872745}, {"d": "Caso 9 · Vida entera diferido 15 años, 30 años, C = 100.000 €*", "sym": "{}_{15|}A_{30}", "t": "PASEM Gen.", "s": "M", "mu": 17553.5004660252, "sd": 6742.925696886842, "cv": 0.3841356719668407, "g1": 2.5773012077899735, "g2": 12.646559296464426}, {"d": "Caso 10 · Temporal 20 (C₁ = 100.000 €*) + diferido 55 vida entera (C₂ = 50.000 €*), 30 años", "sym": "C_1A^1_{30:\\an{20}}+C_2\\,{}_{55|}A_{30}", "t": "PASEM Gen.", "s": "H", "mu": 5463.223479073841, "sd": 7945.8108481641275, "cv": 1.4544180516501861, "g1": 6.182501697691947, "g2": 53.98382600579886}, {"d": "Caso 10 · Temporal 20 (C₁ = 100.000 €*) + diferido 55 vida entera (C₂ = 50.000 €*), 30 años", "sym": "C_1A^1_{30:\\an{20}}+C_2\\,{}_{55|}A_{30}", "t": "PASEM Gen.", "s": "M", "mu": 6096.40669695568, "sd": 6084.000838782059, "cv": 0.9979650540407982, "g1": 7.180765209355874, "g2": 80.83783549482389}, {"d": "Renta · 1.000 €/mes pospagable desde los 70, 22 años", "sym": "12\\,000\\,{}_{48|}a^{(12)}_{22}", "t": "PER Ind.", "s": "H", "mu": 46959.607717686835, "sd": 16047.972835953376, "cv": 0.3417399253509752, "g1": -1.567017194417462, "g2": 5.059590394718721}, {"d": "Renta · 1.000 €/mes pospagable desde los 70, 22 años", "sym": "12\\,000\\,{}_{48|}a^{(12)}_{22}", "t": "PER Ind.", "s": "M", "mu": 52537.087394786475, "sd": 13355.768628843176, "cv": 0.2542160079884546, "g1": -2.1928664608607207, "g2": 8.730505112868027}, {"d": "Renta 1 · 1.000 €/mes prepagable desde los 65, 45 años", "sym": "12\\,000\\,{}_{20|}\\ddot a^{(12)}_{45}", "t": "PER Ind.", "s": "H", "mu": 114811.91726816887, "sd": 39480.68779851696, "cv": 0.34387273323117673, "g1": -1.5687554517037083, "g2": 4.940073972505509}, {"d": "Renta 1 · 1.000 €/mes prepagable desde los 65, 45 años", "sym": "12\\,000\\,{}_{20|}\\ddot a^{(12)}_{45}", "t": "PER Ind.", "s": "M", "mu": 128331.10356586444, "sd": 32888.046844407654, "cv": 0.25627494762038144, "g1": -2.2305333145440245, "g2": 8.570288560827976}, {"d": "Renta 2 · 4.000 €/semestre pospagable desde los 68, 50 años", "sym": "8\\,000\\,{}_{18|}a^{(2)}_{50}", "t": "PER Ind.", "s": "H", "mu": 72346.68965666331, "sd": 28222.82703237836, "cv": 0.3901052994451553, "g1": -1.2657625398361767, "g2": 3.8826474336265258}, {"d": "Renta 2 · 4.000 €/semestre pospagable desde los 68, 50 años", "sym": "8\\,000\\,{}_{18|}a^{(2)}_{50}", "t": "PER Ind.", "s": "M", "mu": 82585.05540601749, "sd": 23874.211831983903, "cv": 0.28908634515784715, "g1": -1.8544184239074446, "g2": 6.631519035572351}, {"d": "Renta 3 · 800 €/trimestre prepagable desde los 67, 30 años", "sym": "3\\,200\\,{}_{37|}\\ddot a^{(4)}_{30}", "t": "PER Ind.", "s": "H", "mu": 18521.82327143546, "sd": 6108.105971964106, "cv": 0.32977887125097927, "g1": -1.6853675637761256, "g2": 5.462012834544091}, {"d": "Renta 3 · 800 €/trimestre prepagable desde los 67, 30 años", "sym": "3\\,200\\,{}_{37|}\\ddot a^{(4)}_{30}", "t": "PER Ind.", "s": "M", "mu": 20579.333495522624, "sd": 5073.7286077797735, "cv": 0.24654484601669183, "g1": -2.3661394432093967, "g2": 9.51394214341743}, {"d": "Renta 4 · 10.000 € cada dos meses pospagable desde los 67, 39 años", "sym": "60\\,000\\,{}_{28|}a^{(6)}_{39}", "t": "PER Ind.", "s": "H", "mu": 434936.28166129516, "sd": 154259.22368659137, "cv": 0.3546708568376462, "g1": -1.5159160643149014, "g2": 4.737403536940999}, {"d": "Renta 4 · 10.000 € cada dos meses pospagable desde los 67, 39 años", "sym": "60\\,000\\,{}_{28|}a^{(6)}_{39}", "t": "PER Ind.", "s": "M", "mu": 488191.9363608683, "sd": 129099.11386762926, "cv": 0.26444335568091, "g1": -2.1657457038869925, "g2": 8.2268560807783}, {"d": "Renta 5 · 500 €/mes prepagable desde los 28, máx. 4 años, 25 años", "sym": "6\\,000\\,{}_{3|}\\ddot a^{(12)}_{25:\\an 4}", "t": "PER Ind.", "s": "H", "mu": 20722.845669248858, "sd": 558.1396622693123, "cv": 0.026933543354885355, "g1": -34.27519278461751, "g2": 1210.3441416094217}, {"d": "Renta 5 · 500 €/mes prepagable desde los 28, máx. 4 años, 25 años", "sym": "6\\,000\\,{}_{3|}\\ddot a^{(12)}_{25:\\an 4}", "t": "PER Ind.", "s": "M", "mu": 20731.646311571305, "sd": 390.06328599195376, "cv": 0.018814872689306934, "g1": -48.857831964649904, "g2": 2462.9054338541137}];
+
+/* ---------- esquemas temporales ---------- */
+const W=360, H=74, X0=14, X1=346, Y=40;
+function tl(spec){
+  // spec: {span, segs:[[a,b,kind]], pts:[[t,kind]], ticks:[[t,label,sub]]}
+  const sx=t=>X0+(t/spec.span)*(X1-X0);
+  const col={death:'var(--mor)',def:'var(--dif)',sur:'var(--sur)',ann:'var(--sur)'};
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${spec.aria}">`;
+  s+=`<line class="tl-axis" x1="${X0}" y1="${Y}" x2="${X1}" y2="${Y}"/>`;
+  (spec.segs||[]).forEach(([a,b,k])=>{
+    if(k==='ann'){ for(let t=a;t<=b+1e-9;t+=(b-a)/10){ s+=`<line x1="${sx(t)}" y1="${Y-9}" x2="${sx(t)}" y2="${Y}" stroke="${col[k]}" stroke-width="2"/>`; } }
+    else s+=`<rect x="${sx(a)}" y="${Y-7}" width="${sx(b)-sx(a)}" height="14" rx="3" fill="${col[k]}" opacity="${k==='def'?.55:.85}"/>`;
+  });
+  (spec.pts||[]).forEach(([t,k])=>{ s+=`<circle cx="${sx(t)}" cy="${Y}" r="6" fill="${col[k]}" stroke="var(--paper)" stroke-width="2"/>`; });
+  (spec.ticks||[]).forEach(([t,l,sub])=>{
+    s+=`<line x1="${sx(t)}" y1="${Y+8}" x2="${sx(t)}" y2="${Y+12}" stroke="var(--line-strong)"/>`;
+    s+=`<text class="tl-txt" x="${sx(t)}" y="${Y+24}" text-anchor="middle">${l}</text>`;
+    if(sub) s+=`<text class="tl-txt" x="${sx(t)}" y="${Y-14}" text-anchor="middle">${sub}</text>`;
+  });
+  return s+'</svg>';
+}
+const SPECS={
+  temp:{aria:'Temporal: cobertura de fallecimiento de 0 a n',span:10,segs:[[0,6,'death']],ticks:[[0,'x','0'],[6,'x+n','n'],[10,'ω+1','']]},
+  cd:{aria:'Capital diferido: pago si sobrevive a n',span:10,segs:[[0,6,'def']],pts:[[6,'sur']],ticks:[[0,'x','0'],[6,'x+n','n'],[10,'ω+1','']]},
+  mix:{aria:'Mixto: cobertura de fallecimiento y pago en n',span:10,segs:[[0,6,'death']],pts:[[6,'sur']],ticks:[[0,'x','0'],[6,'x+n','n'],[10,'ω+1','']]},
+  ve:{aria:'Vida entera: cobertura hasta omega',span:10,segs:[[0,10,'death']],ticks:[[0,'x','0'],[10,'ω+1','ω−x+1']]},
+  dif:{aria:'Diferido temporal: diferimiento m y cobertura n',span:10,segs:[[0,3,'def'],[3,7,'death']],ticks:[[0,'x','0'],[3,'x+m','m'],[7,'x+m+n','m+n'],[10,'ω+1','']]},
+  comb:{aria:'Temporal más vida entera diferido',span:10,segs:[[0,5,'death'],[5,10,'death']],ticks:[[0,'x','0'],[5,'65','C₁ → C₂'],[10,'ω+1','']]},
+  renta:{aria:'Renta diferida k años',span:10,segs:[[0,3,'def'],[3,10,'ann']],ticks:[[0,'x','0'],[3,'x+k','k'],[10,'ω+1','']]}
+};
+document.querySelectorAll('[data-tl]').forEach(d=>{ d.innerHTML=tl(SPECS[d.dataset.tl]); });
+const PRODS=[
+  ['s-temp','Temporal','\\(A^1_{x:\\an n}\\)','temp'],['s-cd','Capital diferido · dotal','\\({}_nE_x\\)','cd'],
+  ['s-mix','Mixto','\\(A_{x:\\an n}\\)','mix'],['s-ve','Vida entera','\\(A_x\\)','ve'],
+  ['s-dif','Diferido','\\({}_{m|}A^1_{x:\\an n}\\)','dif'],['s-comb','Combinaciones','\\(Z_1+Z_2\\)','comb']];
+document.getElementById('prod-grid').innerHTML=PRODS.map(([id,n,s,t])=>`<button class="prod" type="button" data-go="${id}"><span class="nm">${n}</span><span class="sy">${s}</span>${tl(SPECS[t])}</button>`).join('');
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{ document.getElementById(b.dataset.go).scrollIntoView({behavior:'smooth',block:'start'}); }));
+
+/* ---------- ejercicios ---------- */
+const fmt=(n,d)=>Number(n).toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d});
+let sex='H';
+function drawEj(){
+  const rows=EJ.filter(e=>e.s===sex);
+  document.getElementById('ej-table').innerHTML='<thead><tr><th>Ejercicio</th><th>Símbolo</th><th>Tabla</th><th>E</th><th>σ</th><th>CV</th><th>γ₁</th><th>γ₂</th></tr></thead><tbody>'+
+    rows.map(r=>`<tr><td style="font-family:var(--font-body); white-space:normal; min-width:220px">${r.d}</td><td>\\(${r.sym}\\)</td><td style="font-family:var(--font-body)">${r.t}</td><td>${fmt(r.mu,2)} €</td><td>${fmt(r.sd,2)} €</td><td>${fmt(r.cv,4)}</td><td>${fmt(r.g1,3)}</td><td>${fmt(r.g2,2)}</td></tr>`).join('')+'</tbody>';
+  if(window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([document.getElementById('ej-table')]).catch(()=>{});
+}
+document.querySelectorAll('#ej-sex button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#ej-sex button').forEach(x=>x.classList.toggle('active',x===b)); sex=b.dataset.v; drawEj(); }));
+drawEj();
+
+const ERR=[
+  ['Tablas','<b>1.er y 2.º orden están intercambiados.</b> En la Resolución DGSFP de 2020 el 2.º orden es la mejor estimación y el 1.er orden incluye recargos y se usa para tarificar y para provisiones.'],
+  ['ω','<b>ω = 120 siempre.</b> Es la última edad de la tabla (q₁₂₀ = 1). Cuando en los apuntes aparece 121 no es otro ω: es <b>ω + 1 = 120 + 1</b>, y conviene escribirlo así para no confundirlos (por ejemplo, «121 = ω» en el ejercicio 2 debe ser «121 = ω + 1»). La vida entera dura (ω + 1) − x años. En el caso 4 se usó 121 como si fuera ω: h = (ω − x) + 1 − m = (120 − 45) + 1 − 12 = <b>64</b>, no 65, y el último valor es C·v<sup>12+64</sup> = C·v<sup>76</sup>, no C·v<sup>57</sup>.'],
+  ['Caso 4','En <b>₁₂|A₄₅</b> la fila de valor 0 tiene probabilidad <b>₁₂q₄₅</b>. No se suma ningún término de supervivencia: nadie sobrevive a ω.'],
+  ['Mixto','En el ejercicio 7 (mixto 25 años) y en el caso 3 (mixto 17 años) el sumatorio está escrito con (C·v<sup>n</sup>)<sup>k</sup>. Debe ser <b>(C·v<sup>i</sup>)<sup>k</sup></b>; solo el término de supervivencia lleva v<sup>n</sup>.'],
+  ['Caso 1','La tabla de contingencia del temporal 25 años llega hasta C·v<sup>30</sup> con ₂₉|q₃₀. Debe terminar en <b>C·v<sup>25</sup> con ₂₄|q₃₀</b> y la fila 0 con ₂₅p₃₀.'],
+  ['Caso 10','El símbolo aparece como ₅₅|A₅₀, pero la tabla y el esquema son para x = 30: es <b>₅₅|A₃₀</b> (cobertura desde los 85 años).'],
+  ['Renta 4','10.000 € cada dos meses (m = 6) son 60.000 € al año, así que el factor es <b>60.000·₂₈|a⁽⁶⁾₃₉</b>, no 20.000. Si «bimensual» significa dos pagos al mes, sería m = 24. En la primera fila pone ₂₈q₃₈; es <b>₂₈q₃₉</b>.'],
+  ['Notación','<b>E[A]<sup>k</sup></b> en los apuntes significa E[A<sup>k</sup>], el momento de orden k, no el cuadrado de la esperanza.'],
+  ['Combinaciones','Sumar los E[Z<sup>k</sup>] de dos coberturas es correcto porque nunca pagan a la vez. La <b>varianza no es aditiva</b>: Var(Z₁+Z₂) = Var Z₁ + Var Z₂ − 2E[Z₁]E[Z₂].'],
+  ['Ejercicio 3','Para el contrato combinado 1.000.000 A¹₂₃:₄₂ + 500.000 ₄₂|A₂₃ no hay fila de valor 0: siempre se paga. La fila «0 con prob. ₄₂q₂₃» solo vale para el diferido aislado.'],
+  ['Revisado','Ejercicio 2 (2.000.000 € entre 60 y 70): m = 37, n = 10 y la fila 0 con ₃₇q₂₃ + ₄₇p₂₃ son correctos. Bono (906,9567 €) e hipoteca (1.200,60 €/mes) también cuadran.','ok']
+];
+document.getElementById('err-list').innerHTML=ERR.map(([t,x,k])=>`<div class="err-item"><span class="tagx ${k||''}">${t}</span><p>${x}</p></div>`).join('');
+
+/* ---------- glosario ---------- */
+const GL=[
+ ['Ramo de vida','','Fundamentos','Seguros cuya contingencia es la vida humana: seguros de fallecimiento o invalidez (un pago) y rentas actuariales (varios pagos ligados a la supervivencia).'],
+ ['Contingencia','','Fundamentos','Suceso incierto que activa el pago: fallecimiento, supervivencia o invalidez.'],
+ ['Suma asegurada','C','Fundamentos','Importe que paga la aseguradora cuando ocurre la contingencia. También capital o indemnización.'],
+ ['Interés técnico','i','Bases técnicas','Tipo con el que se descuentan los pagos futuros. Suele fijarlo o acotarlo el regulador; los apuntes mencionan el Euribor como referencia.'],
+ ['Factor de descuento','v = (1+i)⁻¹','Bases técnicas','Valor hoy de 1 € pagadero dentro de un año.'],
+   ['Tabla de mortalidad','qₓ','Tablas','Tasas anuales de fallecimiento por edad y sexo. En el enfoque discreto es un modelo no paramétrico.'],
+ ['Tabla generacional','λₓ','Tablas','Tabla cuya qₓ depende del año de nacimiento mediante un factor de mejora: q·e^(−λ(T−año base)). Ejemplo: PER2020.'],
+ ['Tabla de periodo (ultimate)','','Tablas','Tabla con una sola qₓ por edad y sexo, sin ajuste generacional. Ejemplo: PASEM2020.'],
+ ['Tabla de 1.er orden','','Tablas','Incluye recargos de seguridad. Se usa para tarificar y para provisiones contables.'],
+ ['Tabla de 2.º orden','','Tablas','Mejor estimación (best estimate) sin recargos. Se usa en Solvencia II.'],
+ ['Factor de mejora','λₓ','Tablas','Ritmo anual de reducción de la mortalidad a la edad x en una tabla generacional.'],
+ ['Edad límite','ω','Tablas','Última edad de la tabla, con q_ω = 1. En PER/PASEM 2020, ω = 120.'],
+ ['Número de vivos','lₓ','Tablas','Supervivientes a la edad x de una cohorte inicial l₀ (raíz). En la hoja de clase, l₀ = 10.000.000.'],
+ ['Número de fallecidos','dₓ','Tablas','dₓ = lₓ·qₓ = lₓ − lₓ₊₁.'],
+ ['Probabilidad de supervivencia','ₙpₓ','Probabilidad','Probabilidad de que una persona de edad x llegue viva a x + n. Es el producto de los (1 − q).'],
+ ['Probabilidad de fallecimiento','ₙqₓ','Probabilidad','Probabilidad de fallecer antes de x + n: 1 − ₙpₓ.'],
+ ['Fallecimiento diferido','ₘ|qₓ','Probabilidad','Sobrevivir m años y fallecer en el año siguiente: ₘpₓ·qₓ₊ₘ.'],
+ ['Interpolación lineal','','Probabilidad','Forma de pasar de la tabla discreta a edades no enteras: lₓ₊ₛ = lₓ − s·dₓ dentro de cada año de edad.'],
+ ['Variable aleatoria valor actual','Z','Momentos','Valor presente en 0 de las obligaciones futuras del contrato. Es aleatoria porque depende de cuándo fallece el asegurado.'],
+ ['Tabla de contingencia','','Momentos','Tabla de dos columnas con cada valor posible de Z y su probabilidad. Las probabilidades suman 1.'],
+ ['Momento de orden k','E[Zᵏ]','Momentos','Σ valorᵏ·prob. Con k = 1 es la prima única pura.'],
+ ['Varianza','σ²','Momentos','Momento de orden 2 menos la media al cuadrado. Mide la dispersión del coste para la aseguradora.'],
+ ['Coeficiente de asimetría','γ₁','Momentos','Tercer momento centrado dividido por σ³. Positivo en temporales (casi siempre 0, a veces mucho), negativo en rentas y dotales.'],
+ ['Curtosis','γ₂','Momentos','Cuarto momento centrado dividido por σ⁴. Valores altos indican colas pesadas: pagos raros y grandes.'],
+ ['Coeficiente de variación','CV = σ/μ','Momentos','Riesgo relativo por euro de prima. En una cartera de N pólizas iguales e independientes baja a CV/√N.'],
+ ['Prima única pura','','Primas','Esperanza del valor actual de la prestación, sin gastos ni beneficio. También valor actuarial o net single premium.'],
+   ['Seguro temporal','A¹ₓ:ₙ','Seguros','Paga C si el fallecimiento ocurre en los n años siguientes.'],
+ ['Capital diferido','ₙEₓ','Seguros','Paga C si el asegurado sobrevive a x + n. También dotal puro.'],
+ ['Seguro dotal','','Seguros','En los apuntes, seguro contratado para un niño que cobra a cierta edad. Funciona como un capital diferido.'],
+ ['Seguro mixto','Aₓ:ₙ','Seguros','Temporal más capital diferido con el mismo capital: paga al fallecer dentro de n o al sobrevivir a n.'],
+ ['Vida entera','Aₓ','Seguros','Paga C al final del año de fallecimiento, sea cuando sea.'],
+ ['Diferimiento','m|','Seguros','Periodo inicial sin cobertura o sin pagos (carencia).'],
+   ['Renta actuarial','äₓ:ₙ','Rentas','Renta financiera cuyo número de pagos depende de la supervivencia.'],
+ ['Prepagable','ä','Rentas','Pagos al inicio de cada periodo.'],
+ ['Pospagable','a','Rentas','Pagos al final de cada periodo.'],
+ ['Renta vitalicia','äₓ','Rentas','Pagos mientras viva el asegurado; base de planes de pensiones.'],
+ ['Renta fraccionada','ä⁽ᵐ⁾','Rentas','m pagos al año de C/m cada uno.'],
+ ['Renta en progresión geométrica','','Rentas','Pagos que crecen al ritmo 1 + π. Se valora como renta constante al tipo real R.'],
+ ['Tipo de interés real','R','Rentas','(1 + I)/(1 + π) − 1.'],
+  ['Funciones de conmutación','Dₓ Nₓ Sₓ Cₓ Mₓ Rₓ','Conmutación','Columnas auxiliares que convierten cada valor actuarial en un cociente.'],
+ ['Factor financiero-actuarial','ₙEₓ = vⁿ·ₙpₓ','Conmutación','Valor actual de 1 € pagadero en n si se sobrevive. Con conmutación, Dₓ₊ₙ/Dₓ.'],
+  ['Reserva (provisión técnica)','','Regulación','Concepto contable del pasivo que recoge las obligaciones futuras netas. No reparte beneficio.'],
+ ['SCR','','Regulación','Capital de solvencia obligatorio de Solvencia II, adicional a las provisiones.'],
+ ['PER2020','','Regulación','Tablas generacionales de supervivencia (individual y colectivo) de la Resolución DGSFP de 17/12/2020.'],
+ ['PASEM2020','','Regulación','Tablas de riesgo de fallecimiento y decesos de la misma Resolución.']
+ ];
+const cats=['Todas',...new Set(GL.map(g=>g[2]))]; let cat='Todas';
+const catsEl=document.getElementById('gl-cats');
+catsEl.innerHTML=cats.map(c=>`<button type="button" data-c="${c}" class="${c==='Todas'?'active':''}">${c}</button>`).join('');
+catsEl.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; cat=b.dataset.c; [...catsEl.children].forEach(x=>x.classList.toggle('active',x===b)); drawGl(); });
+const search=document.getElementById('gl-search'); search.addEventListener('input',drawGl);
+function drawGl(){
+  const q=search.value.trim().toLowerCase();
+  const list=GL.filter(g=>(cat==='Todas'||g[2]===cat)&&(!q||g.join(' ').toLowerCase().includes(q)));
+  document.getElementById('gl-grid').innerHTML=list.map(([t,s,c,d])=>`<div class="gl-item"><span class="cat">${c}</span><div class="term"><span>${t}</span>${s?`<span class="sym">${s}</span>`:''}</div><div class="def">${d}</div></div>`).join('');
+  document.getElementById('gl-empty').hidden=list.length>0;
+}
+drawGl();
+})();
+</script>
+<script>
+(function(){
+'use strict';
+const TABLAS = {"PER2020_Col_2o":{"M":{"q":[2.176,0.145,0.124,0.104,0.087,0.073,0.063,0.057,0.053,0.053,0.054,0.058,0.064,0.07,0.077,0.085,0.093,0.102,0.109,0.114,0.118,0.121,0.123,0.126,0.129,0.133,0.138,0.145,0.153,0.163,0.175,0.188,0.204,0.223,0.246,0.273,0.304,0.34,0.38,0.425,0.475,0.532,0.596,0.666,0.744,0.828,0.918,1.016,1.12,1.23,1.346,1.466,1.591,1.719,1.849,1.981,2.113,2.243,2.371,2.496,2.517,3.013,3.521,4.003,4.423,4.794,5.163,5.595,6.103,6.705,7.391,8.174,9.128,10.289,11.681,13.355,15.375,17.783,20.596,23.873,27.628,31.957,36.894,42.555,48.881,55.888,63.489,71.422,79.636,88.183,97.036,105.915,114.697,123.545,136.488,148.322,160.963,174.49,188.997,204.589,221.386,239.526,259.17,280.499,303.728,329.103,356.912,387.487,421.216,458.543,499.97,546.05,597.342,654.331,717.207,785.402,856.585,924.679,1000,1000,1000],"l":[0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.0345,0.0341,0.0338,0.0337,0.0336,0.0335,0.0334,0.0331,0.0328,0.0325,0.0323,0.032,0.0319,0.0319,0.0319,0.0319,0.032,0.0321,0.0321,0.0321,0.032,0.0319,0.0318,0.0315,0.0312,0.0308,0.0301,0.0294,0.0285,0.0276,0.0267,0.0258,0.025,0.0242,0.0236,0.0229,0.0221,0.0213,0.0204,0.0193,0.0182,0.017,0.0159,0.0149,0.0141,0.0135,0.0132,0.0131,0.0132,0.0135,0.014,0.0146,0.0153,0.016,0.0168,0.0176,0.0186,0.0195,0.0206,0.0216,0.0227,0.0237,0.0246,0.0254,0.0261,0.0266,0.027,0.0272,0.0272,0.027,0.0266,0.0261,0.0253,0.0243,0.0232,0.022,0.0208,0.0194,0.0181,0.0168,0.0155,0.0142,0.013,0.0119,0.0109,0.0099,0.009,0.0081,0.0073,0.0064,0.0056,0.0051,0.0046,0.0041,0.0036,0.0031,0.0026,0.0021,0.0016,0.0011,0.0006,0.0001,0,0,0,0,0,0,0,0,0,0,0]},"H":{"q":[2.193,0.139,0.12,0.103,0.088,0.076,0.067,0.062,0.059,0.059,0.062,0.068,0.077,0.091,0.108,0.128,0.15,0.175,0.2,0.223,0.243,0.258,0.27,0.278,0.284,0.29,0.297,0.304,0.314,0.326,0.34,0.357,0.376,0.398,0.425,0.457,0.496,0.544,0.604,0.676,0.762,0.861,0.976,1.105,1.251,1.413,1.592,1.788,2.003,2.235,2.486,2.755,3.042,3.345,3.665,4,4.347,4.702,5.058,5.416,5.777,6.601,7.409,8.194,8.911,9.531,10.061,10.552,11.079,11.719,12.612,13.868,15.567,17.722,20.284,23.241,26.612,30.523,35.082,40.352,46.257,52.812,59.989,67.722,75.897,84.322,92.881,101.44,109.851,117.986,125.728,133.143,142.579,152.998,166.3,178.904,192.409,206.909,222.516,239.354,257.569,277.328,298.825,322.287,347.976,376.199,407.314,441.738,479.951,522.492,569.95,622.906,681.811,746.686,816.458,887.536,951.161,991.409,1000,1000,1000],"l":[0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.0342,0.0332,0.0322,0.0309,0.0295,0.0279,0.0262,0.0244,0.0227,0.0212,0.0199,0.0189,0.0182,0.0178,0.0175,0.0172,0.017,0.0168,0.0167,0.0166,0.0166,0.0166,0.0168,0.0172,0.0176,0.0182,0.0187,0.0193,0.0198,0.0202,0.0205,0.0208,0.0209,0.021,0.0209,0.0209,0.0207,0.0205,0.0202,0.0197,0.0191,0.0184,0.0175,0.0166,0.0156,0.0145,0.0135,0.0124,0.0114,0.0105,0.0095,0.0086,0.0078,0.007,0.0062,0.0055,0.005,0.0045,0.004,0.0035,0.003,0.0025,0.002,0.0015,0.001,0.0005,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}},"PER2020_Ind_2o":{"M":{"q":[2.176,0.145,0.124,0.104,0.087,0.073,0.063,0.057,0.053,0.053,0.054,0.054,0.058,0.064,0.07,0.077,0.085,0.093,0.102,0.109,0.114,0.118,0.121,0.123,0.126,0.129,0.133,0.138,0.145,0.153,0.163,0.175,0.188,0.204,0.223,0.246,0.273,0.304,0.34,0.38,0.425,0.475,0.532,0.596,0.666,0.744,0.828,0.918,1.016,1.12,1.23,1.346,1.466,1.591,1.719,1.849,1.981,2.113,2.243,2.371,2.496,2.517,3.013,3.521,4.003,4.423,4.794,5.163,5.595,6.103,6.705,7.391,8.174,9.128,10.289,11.681,13.355,15.375,17.783,20.596,23.873,27.628,31.957,36.894,42.555,48.881,56.522,64.811,73.475,82.485,91.872,101.476,111.038,120.595,133.252,146.35,159.909,174.49,188.997,204.589,221.386,239.526,259.17,280.499,303.728,329.103,356.912,387.487,421.216,458.543,499.97,546.05,597.342,654.331,717.207,785.402,856.585,924.679,1000,1000,1000],"l":[0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.0345,0.0341,0.0338,0.0338,0.0337,0.0336,0.0335,0.0334,0.0331,0.0328,0.0325,0.0323,0.032,0.0319,0.0319,0.0319,0.0319,0.032,0.0321,0.0321,0.0321,0.032,0.0319,0.0318,0.0315,0.0312,0.0308,0.0301,0.0294,0.0285,0.0276,0.0267,0.0258,0.025,0.0242,0.0236,0.0229,0.0221,0.0213,0.0204,0.0193,0.0182,0.017,0.0159,0.0149,0.0141,0.0135,0.0132,0.0131,0.0132,0.0135,0.014,0.0146,0.0153,0.016,0.0168,0.0176,0.0186,0.0195,0.0206,0.0216,0.0227,0.0237,0.0246,0.0254,0.0261,0.0266,0.027,0.0272,0.0272,0.027,0.0266,0.0261,0.0253,0.0243,0.0232,0.022,0.0208,0.0193,0.0179,0.0164,0.0151,0.0137,0.0125,0.0113,0.0102,0.0092,0.0083,0.0073,0.0064,0.0056,0.0051,0.0046,0.0041,0.0036,0.0031,0.0026,0.0021,0.0016,0.0011,0.0006,0.0001,0,0,0,0,0,0,0,0,0,0,0]},"H":{"q":[2.193,0.139,0.12,0.103,0.088,0.076,0.067,0.062,0.059,0.059,0.062,0.062,0.068,0.077,0.091,0.108,0.128,0.15,0.175,0.2,0.223,0.243,0.258,0.27,0.278,0.284,0.29,0.297,0.304,0.314,0.326,0.34,0.357,0.376,0.398,0.425,0.457,0.496,0.544,0.604,0.676,0.762,0.861,0.976,1.105,1.251,1.413,1.592,1.788,2.003,2.235,2.486,2.755,3.042,3.345,3.665,4,4.347,4.702,5.058,5.416,5.777,6.601,7.409,8.194,8.911,9.531,10.061,10.552,11.079,11.719,12.612,13.868,15.567,17.722,20.284,23.241,26.612,30.523,35.082,40.352,46.257,52.812,59.989,67.722,75.897,85.035,94.307,103.542,112.562,121.212,129.436,138.647,149.525,162.974,176.804,191.284,206.909,222.516,239.354,257.569,277.328,298.825,322.287,347.976,376.199,407.314,441.738,479.951,522.492,569.95,622.906,681.811,746.686,816.458,887.536,951.161,991.409,1000,1000,1000],"l":[0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.035,0.0342,0.0332,0.0322,0.0309,0.0295,0.0279,0.0262,0.0244,0.0227,0.0212,0.0199,0.0189,0.0182,0.0178,0.0175,0.0172,0.017,0.0168,0.0167,0.0166,0.0166,0.0166,0.0168,0.0172,0.0176,0.0182,0.0187,0.0193,0.0198,0.0202,0.0205,0.0208,0.0209,0.021,0.0209,0.0209,0.0207,0.0205,0.0202,0.0197,0.0191,0.0184,0.0175,0.0166,0.0155,0.0143,0.0132,0.0121,0.011,0.01,0.009,0.0081,0.0072,0.0063,0.0055,0.005,0.0045,0.004,0.0035,0.003,0.0025,0.002,0.0015,0.001,0.0005,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}},"PASEM2020_General_2o":{"M":{"q":[1.5915,0.1135,0.0935,0.0755,0.0608,0.0504,0.0437,0.0402,0.0383,0.0377,0.0393,0.0429,0.0497,0.059,0.0704,0.083,0.0948,0.1049,0.0984,0.0956,0.0944,0.0945,0.0956,0.0969,0.0983,0.0994,0.0997,0.0995,0.0991,0.0988,0.0999,0.1025,0.1075,0.1161,0.1294,0.148,0.1703,0.1954,0.2215,0.248,0.2757,0.3049,0.3523,0.4093,0.4746,0.5466,0.627,0.7194,0.822,0.9375,1.0643,1.1634,1.2671,1.3732,1.4801,1.5873,1.6961,1.8083,1.9268,2.0549,2.1964,2.3547,2.5336,2.736,2.9649,3.2227,3.5128,3.8402,4.2129,4.642,5.1422,5.7316,6.4295,7.2535,8.2172,9.3311,10.6097,12.0803,13.7859,15.7856,18.1486,20.9661,24.3162,28.2729,32.9055,38.2772,44.4453,51.4634,59.3816,68.2442,78.0924,88.9655,100.9102,113.9791,128.2225,143.6705,160.2933,177.9892,196.5954,215.9209,235.801,249.0731,288.6286,347.2506,430.0414,536.6448,654.3275,770.0554,870.5414,942.3699,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000]},"H":{"q":[1.8185,0.1309,0.1093,0.0899,0.0739,0.0626,0.0555,0.052,0.0503,0.0505,0.0537,0.0607,0.0735,0.0927,0.119,0.1521,0.1887,0.2248,0.2248,0.2294,0.235,0.2411,0.2481,0.2544,0.2602,0.2645,0.2657,0.264,0.2596,0.2531,0.2477,0.244,0.2439,0.2498,0.2636,0.2858,0.3131,0.3439,0.3762,0.4103,0.4482,0.4922,0.5701,0.6697,0.7902,0.9303,1.0925,1.2824,1.4958,1.7362,2.0005,2.2156,2.4443,2.6864,2.9427,3.2152,3.5063,3.8184,4.153,4.5112,4.8936,5.3009,5.7356,6.2018,6.7055,7.2544,7.8573,8.525,9.2698,10.1054,11.0475,12.1145,13.3273,14.7075,16.2778,18.0613,20.0826,22.3702,24.9547,27.8701,31.1535,34.8762,39.0908,43.8534,49.2242,55.2642,62.0312,69.5805,77.9581,87.1943,97.3019,108.2739,120.0957,132.752,146.243,160.5926,175.8244,191.9485,208.9543,226.8097,245.4643,257.5371,296.8872,355.6377,438.6992,545.4233,662.7341,777.5556,876.8119,947.4271,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000]}},"PASEM2020_Decesos_2o":{"M":{"q":[2.5464,0.1816,0.1495,0.1207,0.0972,0.0806,0.07,0.0643,0.0612,0.0604,0.0628,0.0687,0.0795,0.0944,0.1126,0.1327,0.1518,0.1678,0.1574,0.1529,0.1511,0.1512,0.1529,0.155,0.1572,0.159,0.1595,0.1593,0.1586,0.1581,0.1598,0.164,0.172,0.1858,0.207,0.2367,0.2725,0.3126,0.3543,0.3968,0.441,0.4879,0.5637,0.655,0.7593,0.8746,1.0032,1.151,1.3152,1.5,1.7029,1.8615,2.0274,2.1971,2.3681,2.5397,2.7137,2.8932,3.0828,3.2879,3.5142,3.7676,4.0538,4.3777,4.7438,5.1564,5.6205,6.1443,6.7406,7.4272,8.2276,9.1705,10.2871,11.6056,13.1475,14.9297,16.9756,19.3285,22.0575,25.257,29.0378,33.5458,38.9059,45.2367,52.6488,61.2435,71.1125,82.3414,95.0105,109.1907,124.9478,142.3447,161.4563,182.3665,205.156,229.8729,256.4692,284.7828,314.5526,345.4734,392.9321,446.9183,509.1276,577.7148,649.9505,722.5567,792.0432,855.0432,908.6501,950.753,980.373,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000]},"H":{"q":[2.9096,0.2094,0.1749,0.1438,0.1182,0.1002,0.0889,0.0832,0.0806,0.0808,0.086,0.0971,0.1175,0.1483,0.1904,0.2433,0.3018,0.3597,0.3596,0.367,0.376,0.3857,0.3969,0.4071,0.4164,0.4232,0.4251,0.4224,0.4154,0.405,0.3963,0.3903,0.3902,0.3996,0.4218,0.4572,0.501,0.5502,0.602,0.6564,0.7171,0.7876,0.9122,1.0715,1.2643,1.4885,1.748,2.0518,2.3933,2.778,3.2008,3.545,3.9109,4.2982,4.7083,5.1443,5.6101,6.1094,6.6448,7.218,7.8298,8.4814,9.1769,9.9229,10.7288,11.607,12.5717,13.64,14.8317,16.1686,17.676,19.3832,21.3236,23.532,26.0445,28.898,32.1322,35.7924,39.9275,44.5922,49.8457,55.8019,62.5452,70.1654,78.7588,88.4226,99.25,111.3288,124.733,139.5108,155.6831,173.2382,192.1531,212.4032,233.9889,256.9482,281.3191,307.1176,334.327,362.8955,408.0674,459.664,519.6055,586.0881,656.4181,727.3466,795.4047,857.2378,909.9408,951.3929,980.5922,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000]}},"PER2020_Col_1er":{"M":{"q":[1.964,0.131,0.112,0.094,0.079,0.066,0.057,0.051,0.048,0.048,0.049,0.052,0.058,0.063,0.069,0.077,0.084,0.092,0.098,0.103,0.106,0.109,0.111,0.114,0.116,0.12,0.125,0.131,0.138,0.147,0.158,0.17,0.184,0.201,0.222,0.246,0.274,0.307,0.343,0.384,0.429,0.48,0.538,0.601,0.671,0.747,0.828,0.917,1.011,1.11,1.215,1.323,1.436,1.551,1.669,1.788,1.907,2.024,2.14,2.253,2.272,2.719,3.178,3.612,3.992,4.327,4.66,5.049,5.508,6.052,6.67,7.384,8.257,9.327,10.618,12.179,14.072,16.34,18.998,22.101,25.658,29.762,34.433,39.789,45.763,52.373,59.527,66.994,74.706,82.715,91.001,99.285,107.46,115.687,127.739,138.755,150.532,163.148,176.712,191.29,206.996,223.957,242.324,262.267,283.986,307.712,333.712,362.3,393.837,428.737,467.472,510.556,558.515,611.8,670.589,734.351,800.907,864.574,935,1000,1000],"l":[0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.0395,0.0391,0.0388,0.0387,0.0386,0.0385,0.0384,0.0381,0.0378,0.0375,0.0373,0.037,0.0369,0.0369,0.0369,0.0369,0.037,0.0371,0.0371,0.0371,0.037,0.0369,0.0368,0.0365,0.0362,0.0358,0.0351,0.0344,0.0335,0.0326,0.0317,0.0308,0.03,0.0292,0.0286,0.0279,0.0271,0.0263,0.0254,0.0243,0.0232,0.022,0.0209,0.0199,0.0191,0.0185,0.0182,0.0181,0.0182,0.0185,0.019,0.0196,0.0203,0.021,0.0218,0.0226,0.0236,0.0245,0.0255,0.0264,0.0274,0.0282,0.0289,0.0296,0.03,0.0303,0.0305,0.0305,0.0302,0.0298,0.0292,0.0285,0.0276,0.0264,0.0253,0.024,0.0228,0.0214,0.0201,0.0188,0.0175,0.0162,0.015,0.0137,0.0125,0.0113,0.0102,0.0091,0.0081,0.007,0.006,0.0053,0.0046,0.0041,0.0036,0.0031,0.0026,0.0021,0.0016,0.0011,0.0006,0.0001,0,0,0,0,0,0,0,0,0,0,0]},"H":{"q":[1.979,0.125,0.108,0.093,0.079,0.069,0.06,0.056,0.053,0.053,0.056,0.061,0.069,0.082,0.097,0.116,0.135,0.158,0.181,0.201,0.219,0.233,0.244,0.251,0.256,0.262,0.268,0.274,0.283,0.294,0.307,0.322,0.339,0.359,0.384,0.412,0.448,0.491,0.545,0.61,0.688,0.777,0.881,0.997,1.129,1.275,1.437,1.614,1.808,2.017,2.244,2.486,2.745,3.019,3.308,3.61,3.923,4.244,4.565,4.888,5.214,5.964,6.703,7.426,8.092,8.675,9.179,9.648,10.15,10.755,11.593,12.766,14.348,16.356,18.745,21.505,24.662,28.332,32.612,37.568,43.126,49.294,56.048,63.327,71.017,78.933,86.965,94.978,102.831,110.399,117.568,124.396,133.097,142.686,154.958,166.56,179.037,192.426,206.94,222.599,239.539,257.915,277.907,299.727,323.617,349.865,378.802,410.817,446.354,485.918,530.053,579.303,634.084,694.418,759.306,825.409,884.58,922.01,930,1000,1000],"l":[0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.0392,0.0382,0.0372,0.0359,0.0345,0.0329,0.0312,0.0294,0.0277,0.0262,0.0249,0.0239,0.0232,0.0228,0.0225,0.0222,0.022,0.0218,0.0217,0.0216,0.0216,0.0216,0.0218,0.0222,0.0226,0.0231,0.0235,0.024,0.0243,0.0245,0.0247,0.0247,0.0246,0.0245,0.0242,0.0239,0.0235,0.0231,0.0226,0.022,0.0212,0.0205,0.0195,0.0186,0.0176,0.0165,0.0155,0.0144,0.0134,0.0125,0.0113,0.0102,0.0092,0.0082,0.0072,0.0063,0.0056,0.0049,0.0042,0.0035,0.003,0.0025,0.002,0.0015,0.001,0.0005,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}},"PER2020_Ind_1er":{"M":{"q":[1.964,0.131,0.112,0.094,0.079,0.066,0.057,0.051,0.048,0.048,0.049,0.049,0.052,0.058,0.063,0.069,0.077,0.084,0.092,0.098,0.103,0.106,0.109,0.111,0.114,0.116,0.12,0.125,0.131,0.138,0.147,0.158,0.17,0.184,0.201,0.222,0.246,0.274,0.307,0.343,0.384,0.429,0.48,0.538,0.601,0.671,0.747,0.828,0.917,1.011,1.11,1.215,1.323,1.436,1.551,1.669,1.788,1.907,2.024,2.14,2.253,2.272,2.719,3.178,3.612,3.992,4.327,4.66,5.049,5.508,6.052,6.67,7.384,8.257,9.327,10.618,12.179,14.072,16.34,18.998,22.101,25.658,29.762,34.433,39.789,45.763,52.969,60.771,68.922,77.376,86.167,95.143,104.053,112.945,124.726,136.919,149.551,163.148,176.712,191.29,206.996,223.957,242.324,262.267,283.986,307.712,333.712,362.3,393.837,428.737,467.472,510.556,558.515,611.8,670.589,734.351,800.907,864.574,935,1000,1000],"l":[0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.0395,0.0391,0.0388,0.0388,0.0387,0.0386,0.0385,0.0384,0.0381,0.0378,0.0375,0.0373,0.037,0.0369,0.0369,0.0369,0.0369,0.037,0.0371,0.0371,0.0371,0.037,0.0369,0.0368,0.0365,0.0362,0.0358,0.0351,0.0344,0.0335,0.0326,0.0317,0.0308,0.03,0.0292,0.0286,0.0279,0.0271,0.0263,0.0254,0.0243,0.0232,0.022,0.0209,0.0199,0.0191,0.0185,0.0182,0.0181,0.0182,0.0185,0.019,0.0196,0.0203,0.021,0.0218,0.0226,0.0236,0.0245,0.0255,0.0264,0.0274,0.0282,0.0289,0.0296,0.03,0.0303,0.0305,0.0305,0.0302,0.0298,0.0292,0.0285,0.0276,0.0264,0.0253,0.024,0.0228,0.0213,0.0199,0.0184,0.0171,0.0157,0.0144,0.013,0.0117,0.0105,0.0093,0.0081,0.007,0.006,0.0053,0.0046,0.0041,0.0036,0.0031,0.0026,0.0021,0.0016,0.0011,0.0006,0.0001,0,0,0,0,0,0,0,0,0,0,0]},"H":{"q":[1.979,0.125,0.108,0.093,0.079,0.069,0.06,0.056,0.053,0.053,0.056,0.056,0.061,0.069,0.082,0.097,0.116,0.135,0.158,0.181,0.201,0.219,0.233,0.244,0.251,0.256,0.262,0.268,0.274,0.283,0.294,0.307,0.322,0.339,0.359,0.384,0.412,0.448,0.491,0.545,0.61,0.688,0.777,0.881,0.997,1.129,1.275,1.437,1.614,1.808,2.017,2.244,2.486,2.745,3.019,3.308,3.61,3.923,4.244,4.565,4.888,5.214,5.964,6.703,7.426,8.092,8.675,9.179,9.648,10.15,10.755,11.593,12.766,14.348,16.356,18.745,21.505,24.662,28.332,32.612,37.568,43.126,49.294,56.048,63.327,71.017,79.603,88.3,96.941,105.354,113.386,120.982,129.472,139.49,151.89,164.626,177.997,192.426,206.94,222.599,239.539,257.915,277.907,299.727,323.617,349.865,378.802,410.817,446.354,485.918,530.053,579.303,634.084,694.418,759.306,825.409,884.58,922.01,930,1000,1000],"l":[0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.0392,0.0382,0.0372,0.0359,0.0345,0.0329,0.0312,0.0294,0.0277,0.0262,0.0249,0.0239,0.0232,0.0228,0.0225,0.0222,0.022,0.0218,0.0217,0.0216,0.0216,0.0216,0.0218,0.0222,0.0226,0.0231,0.0235,0.024,0.0243,0.0245,0.0247,0.0247,0.0246,0.0245,0.0242,0.0239,0.0235,0.0231,0.0226,0.022,0.0212,0.0205,0.0195,0.0186,0.0175,0.0163,0.0152,0.0141,0.013,0.0119,0.0107,0.0095,0.0084,0.0074,0.0064,0.0056,0.0049,0.0042,0.0035,0.003,0.0025,0.002,0.0015,0.001,0.0005,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}},"PASEM2020_Rel_1er":{"M":{"q":[1.7537,0.1251,0.103,0.0832,0.067,0.0555,0.0482,0.0443,0.0422,0.0416,0.0433,0.0473,0.0547,0.065,0.0775,0.0914,0.1045,0.1155,0.1084,0.1053,0.1041,0.1041,0.1053,0.1067,0.1083,0.1095,0.1099,0.1097,0.1092,0.1089,0.1101,0.1129,0.1185,0.1279,0.1426,0.163,0.1877,0.2153,0.244,0.2733,0.3037,0.336,0.3882,0.4511,0.5229,0.6023,0.6909,0.7927,0.9058,1.033,1.1728,1.282,1.3962,1.5131,1.6308,1.749,1.8688,1.9925,2.123,2.2643,2.4202,2.5946,2.7917,3.0148,3.2669,3.551,3.8706,4.2314,4.6421,5.1149,5.6661,6.3155,7.0845,7.9925,9.0543,10.2817,11.6906,13.311,15.1904,17.3938,19.9975,23.1021,26.7934,31.1532,36.2577,42.1767,48.9732,56.7062,65.4311,75.1965,86.048,98.0288,111.1904,125.5907,141.2852,158.307,176.6231,196.1219,216.6235,237.9178,259.8232,274.4474,318.0326,382.6268,473.8518,591.3155,720.9872,848.5048,959.2278,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000]},"H":{"q":[2.0038,0.1442,0.1204,0.099,0.0814,0.069,0.0612,0.0573,0.0555,0.0556,0.0592,0.0668,0.0809,0.1021,0.1311,0.1676,0.2079,0.2477,0.2477,0.2527,0.259,0.2656,0.2733,0.2804,0.2867,0.2915,0.2928,0.2909,0.286,0.2789,0.2729,0.2688,0.2687,0.2752,0.2905,0.3149,0.345,0.3789,0.4146,0.452,0.4939,0.5424,0.6282,0.7379,0.8707,1.0251,1.2038,1.413,1.6482,1.9131,2.2043,2.4413,2.6933,2.96,3.2425,3.5427,3.8635,4.2074,4.5761,4.9708,5.3921,5.8409,6.3199,6.8336,7.3887,7.9934,8.6578,9.3935,10.2142,11.1348,12.173,13.3487,14.685,16.2058,17.9361,19.9013,22.1286,24.6492,27.4969,30.7094,34.3273,38.4292,43.0731,48.3209,54.239,60.8942,68.3507,76.669,85.9001,96.0772,107.2146,119.3043,132.3305,146.2761,161.1415,176.953,193.7365,211.5033,230.2416,249.9159,270.471,283.7737,327.1326,391.8683,483.3917,600.9883,730.2501,856.7691,966.1372,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000]}},"PASEM2020_NoRel_1er":{"M":{"q":[1.8382,0.1311,0.1079,0.0872,0.0702,0.0582,0.0505,0.0464,0.0442,0.0436,0.0453,0.0496,0.0574,0.0681,0.0813,0.0958,0.1096,0.1211,0.1136,0.1104,0.1091,0.1091,0.1104,0.1119,0.1135,0.1148,0.1151,0.115,0.1145,0.1142,0.1154,0.1184,0.1242,0.1341,0.1495,0.1709,0.1967,0.2256,0.2558,0.2865,0.3184,0.3522,0.4069,0.4728,0.5481,0.6314,0.7242,0.8309,0.9494,1.0828,1.2293,1.3438,1.4635,1.5861,1.7095,1.8334,1.9589,2.0885,2.2254,2.3735,2.5368,2.7197,2.9263,3.1601,3.4244,3.7222,4.0573,4.4355,4.8659,5.3615,5.9393,6.62,7.426,8.3778,9.4908,10.7774,12.2542,13.9528,15.9228,18.2324,20.9617,24.2159,28.0852,32.6552,38.0058,44.2102,51.3343,59.4402,68.5857,78.822,90.1967,102.7551,116.5513,131.6458,148.097,165.9395,185.1387,205.5776,227.0677,249.3886,272.3501,287.6794,333.366,401.0745,496.6978,619.8248,755.7483,889.414,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000]},"H":{"q":[2.1004,0.1512,0.1262,0.1038,0.0854,0.0723,0.0642,0.0601,0.0581,0.0583,0.0621,0.0701,0.0848,0.107,0.1374,0.1756,0.2179,0.2597,0.2596,0.2649,0.2715,0.2784,0.2865,0.2939,0.3006,0.3055,0.3069,0.3049,0.2998,0.2923,0.2861,0.2818,0.2817,0.2885,0.3045,0.3301,0.3617,0.3972,0.4345,0.4738,0.5177,0.5685,0.6585,0.7735,0.9126,1.0745,1.2618,1.4811,1.7277,2.0053,2.3106,2.559,2.8232,3.1028,3.3988,3.7135,4.0498,4.4102,4.7967,5.2105,5.6521,6.1225,6.6246,7.1631,7.7449,8.3788,9.0752,9.8463,10.7066,11.6717,12.7599,13.9922,15.393,16.9872,18.8009,20.8608,23.1954,25.8376,28.8226,32.19,35.9823,40.282,45.1498,50.6507,56.854,63.8301,71.6461,80.3654,90.0416,100.7094,112.3837,125.0563,138.7105,153.3286,168.9107,185.4845,203.0772,221.7005,241.3423,261.9652,283.5113,297.4553,342.9047,410.7615,506.6976,629.9639,765.4579,898.0767,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000]}},"PASEM2020_Decesos_1er":{"M":{"q":[2.8059,0.2001,0.1648,0.133,0.1071,0.0888,0.0771,0.0709,0.0675,0.0665,0.0692,0.0757,0.0875,0.104,0.1241,0.1463,0.1672,0.1849,0.1735,0.1685,0.1665,0.1666,0.1685,0.1708,0.1732,0.1752,0.1758,0.1755,0.1748,0.1743,0.1761,0.1807,0.1896,0.2047,0.2281,0.2609,0.3003,0.3444,0.3904,0.4373,0.486,0.5376,0.6211,0.7217,0.8366,0.9637,1.1054,1.2683,1.4492,1.6528,1.8764,2.0511,2.234,2.421,2.6094,2.7985,2.9901,3.188,3.3969,3.6229,3.8723,4.1514,4.4667,4.8236,5.2271,5.6817,6.193,6.7703,7.4273,8.1838,9.0657,10.1048,11.3351,12.7879,14.4869,16.4507,18.705,21.2976,24.3046,27.83,31.9961,36.9633,42.8694,49.8451,58.0124,67.4827,78.357,90.7299,104.6897,120.3145,137.6768,156.8461,177.9047,200.9451,226.0563,253.2912,282.597,313.795,346.5977,380.6686,432.962,492.4481,560.9949,636.5695,716.1642,796.1672,872.7325,942.1507,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000]},"H":{"q":[3.206,0.2308,0.1927,0.1585,0.1303,0.1104,0.0979,0.0917,0.0888,0.089,0.0947,0.107,0.1295,0.1634,0.2097,0.2681,0.3326,0.3963,0.3963,0.4044,0.4143,0.425,0.4373,0.4486,0.4588,0.4663,0.4685,0.4654,0.4577,0.4462,0.4367,0.4301,0.43,0.4404,0.4647,0.5038,0.552,0.6063,0.6633,0.7233,0.7902,0.8678,1.0051,1.1807,1.3931,1.6401,1.9261,2.2608,2.6371,3.061,3.5269,3.9061,4.3093,4.7361,5.188,5.6683,6.1817,6.7318,7.3217,7.9533,8.6274,9.3454,10.1118,10.9337,11.8218,12.7895,13.8524,15.0295,16.3427,17.8157,19.4767,21.3579,23.496,25.9293,28.6978,31.842,35.4057,39.4387,43.9951,49.135,54.9237,61.4868,68.917,77.3135,86.7823,97.4307,109.3611,122.6704,137.4401,153.7235,171.5433,190.8868,211.7287,234.0418,257.8265,283.1248,309.9785,338.4052,368.3865,399.8654,449.6393,506.4923,572.5403,645.7958,723.2906,801.445,876.4365,944.5689,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000]}}};
+const TINFO = {
+  PER2020_Ind_2o:'Generacional, base 2012. Supervivencia: rentas y capitales diferidos.',
+  PER2020_Col_2o:'Generacional, base 2012. Supervivencia, colectivos.',
+  PASEM2020_General_2o:'De periodo (ultimate). Riesgo de fallecimiento.',
+  PASEM2020_Decesos_2o:'De periodo (ultimate). Seguros de decesos.',
+  PER2020_Ind_1er:'Generacional con recargos de seguridad.',
+  PER2020_Col_1er:'Generacional con recargos de seguridad.',
+  PASEM2020_Rel_1er:'De periodo con recargo del 10,1875 %.',
+  PASEM2020_NoRel_1er:'De periodo con recargo del 15,5 %.',
+  PASEM2020_Decesos_1er:'De periodo con recargo del 10,1875 %.'
+};
+
+/* ================= utilidades ================= */
+const $=id=>document.getElementById(id);
+const nf=(n,d)=>Number.isFinite(n)?n.toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d}):'–';
+const eur=n=>nf(n,2)+' €';
+function sci(n){ if(!Number.isFinite(n)) return '–'; if(n===0) return '0'; const a=Math.abs(n); if(a>=1e-4 && a<1e9) return nf(n, a>=1000?2:(a>=1?6:8)); return n.toExponential(6).replace('.',','); }
+function seg(id,cb){ const el=$(id); el.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; [...el.children].forEach(x=>x.classList.toggle('active',x===b)); cb(b.dataset.v); }); }
+function setSeg(id,v){ [...$(id).children].forEach(x=>x.classList.toggle('active',x.dataset.v===String(v))); }
+function copyText(text,out,msg){
+  const fb=()=>{ out.hidden=false; out.value=text; out.select(); };
+  try{ navigator.clipboard.writeText(text).then(()=>{ msg.hidden=false; setTimeout(()=>msg.hidden=true,1500); },fb); }catch(e){ fb(); }
+}
+
+/* ================= estado ================= */
+const B={tabla:'PER2020_Ind_2o', sexo:'H', x:45, anio:2026, i:0.03};
+const SG={tipo:'temp', C:100000, C2:50000, m:10, n:20, k:1};
+const RT={mod:'pre', dur:'vit', n:10, k:20, m:12, c:1000, g:'none', pi:0.02, kk:1};
+
+/* ================= motor actuarial ================= */
+function omega(tab,sx){ return TABLAS[tab][sx].q.length-1; }
+function hasL(tab){ return !!TABLAS[tab].H.l; }
+function qx(tab,sx,age,nac){
+  const d=TABLAS[tab][sx];
+  if(age>=d.q.length) return 1;
+  let q=d.q[age]/1000;
+  if(d.l) q*=Math.exp(-d.l[age]*(nac+age-2012));
+  return Math.min(1,q);
+}
+// supervivencia de la generación desde la edad x; interpolación lineal de l dentro del año
+function life(){
+  const {tabla,sexo,x,anio}=B, nac=anio-x, om=omega(tabla,sexo);
+  const L=[1], q=[];
+  for(let k=0;k<=om-x;k++){ const qq=qx(tabla,sexo,x+k,nac); q.push(qq); L.push(L[k]*(1-qq)); }
+  const W=om+1-x;
+  function S(t){
+    if(t<=0) return 1; if(t>=W) return 0;
+    const k=Math.floor(t+1e-10), f=t-k;
+    return f<1e-10 ? L[k] : L[k]*(1-f*q[k]);
+  }
+  return {L,q,W,S,nac,om};
+}
+// momentos de orden 1..4 a partir de la tabla de contingencia
+function moments(rows){
+  const E=[0,0,0,0];
+  rows.forEach(r=>{ for(let k=1;k<=4;k++) E[k-1]+=r.p*Math.pow(r.v,k); });
+  const mu=E[0], v2=E[1]-mu*mu, sd=Math.sqrt(Math.max(v2,0));
+  const m3=E[2]-3*mu*E[1]+2*mu**3, m4=E[3]-4*mu*E[2]+6*mu*mu*E[1]-3*mu**4;
+  return {E,mu,var:v2,sd,cv:mu?sd/mu:NaN,g1:sd>0?m3/sd**3:NaN,g2:sd>0?m4/sd**4:NaN,m3,m4,psum:rows.reduce((a,r)=>a+r.p,0)};
+}
+
+/* -------- seguros -------- */
+function segSpec(){
+  const {tipo,C,C2}=SG, Lf=life(), W=Lf.W, warns=[];
+  let m=Math.max(0,Math.round(SG.m)), n=Math.max(1,Math.round(SG.n));
+  const deaths=new Map(); let surv=null;
+  const lim=a=>{ if(a>W){ warns.push(`La duración supera ω: se trunca en ${W} años (edad ${Lf.om}).`); return W; } return a; };
+  const capM=()=>{ if(m>=W){ m=W-1; warns.push('El diferimiento supera ω.'); } };
+  if(tipo==='temp'){ n=lim(n); for(let j=1;j<=n;j++) deaths.set(j,C); }
+  else if(tipo==='cd'){ n=lim(n); surv={n,C}; }
+  else if(tipo==='mix'){ n=lim(n); for(let j=1;j<=n;j++) deaths.set(j,C); surv={n,C:C2}; }
+  else if(tipo==='ve'){ for(let j=1;j<=W;j++) deaths.set(j,C); }
+  else if(tipo==='dt'){ capM(); const e=lim(m+n); n=e-m; for(let j=m+1;j<=e;j++) deaths.set(j,C); }
+  else if(tipo==='dve'){ capM(); for(let j=m+1;j<=W;j++) deaths.set(j,C); }
+  else if(tipo==='comb'){ n=lim(n); if(m<n){ m=n; warns.push('El diferimiento de C₂ no puede ser menor que la duración del temporal: se iguala.'); } capM();
+    for(let j=1;j<=n;j++) deaths.set(j,C); for(let j=m+1;j<=W;j++) deaths.set(j,C2); }
+  return {Lf,deaths,surv,m,n,warns};
+}
+function segRows(spec){
+  const v=1/(1+B.i), {Lf,deaths,surv}=spec, rows=[];
+  deaths.forEach((Cj,j)=>{ const p=Lf.S(j-1)-Lf.S(j); if(p<=0) return;
+    rows.push({t:j, v:Cj*Math.pow(v,j), p, kind:'death', lbl:`Fallece en el año ${j} (edad ${B.x+j-1})`}); });
+  if(surv){
+    const p=Lf.S(surv.n), val=surv.C*Math.pow(v,surv.n);
+    const same=rows.find(r=>r.t===surv.n && Math.abs(r.v-val)<1e-9);
+    if(same){ same.p+=p; same.lbl=`Fallece el año ${surv.n} o sobrevive a ${B.x+surv.n}`; same.kind='sur'; }
+    else rows.push({t:surv.n, v:val, p, kind:'sur', lbl:`Sobrevive a ${B.x+surv.n}`});
+  }
+  const rest=1-rows.reduce((a,r)=>a+r.p,0);
+  if(rest>1e-13) rows.push({t:null, v:0, p:rest, kind:'zero', lbl:'Sin pago'});
+  rows.sort((a,b)=>(a.t??1e9)-(b.t??1e9));
+  return rows;
+}
+function segSymbol(spec){
+  const x=B.x, {m,n}=spec;
+  return ({
+    temp:[`A¹${x}:${n}⌉`,`Paga C si fallece en los próximos ${n} años.`],
+    cd:[`A${x}:${n}⌉¹ = ${n}E${x}`,`Paga C si sobrevive a la edad ${x+n}.`],
+    mix:[`A${x}:${n}⌉`,`Paga al fallecer antes de ${x+n} o al sobrevivir a esa edad.`],
+    ve:[`A${x}`,'Paga C al final del año de fallecimiento, sea cuando sea.'],
+    dt:[`${m}|A¹${x}:${n}⌉`,`Paga C si fallece entre las edades ${x+m} y ${x+m+n}.`],
+    dve:[`${m}|A${x}`,`Paga C si fallece después de cumplir ${x+m}.`],
+    comb:[`C₁·A¹${x}:${n}⌉ + C₂·${m}|A${x}`,`C₁ si fallece antes de ${x+n}; C₂ si fallece después de ${x+m}.`]
+  })[SG.tipo];
+}
+/* -------- conmutación (columnas de la hoja de clase) -------- */
+function commut(i){
+  const {tabla,sexo,x,anio}=B, nac=anio-x, om=omega(tabla,sexo), v=1/(1+i);
+  const q=[],l=[1e7],d=[],D=[],Cc=[];
+  for(let a=0;a<=om;a++){ q[a]=qx(tabla,sexo,a,nac); if(a>0) l[a]=l[a-1]*(1-q[a-1]); }
+  for(let a=0;a<=om;a++){ d[a]=l[a]*q[a]; D[a]=Math.pow(v,a)*l[a]; Cc[a]=Math.pow(v,a+1)*d[a]; }
+  const cum=arr=>{ const o=new Array(arr.length).fill(0); for(let a=arr.length-1;a>=0;a--) o[a]=arr[a]+(a+1<arr.length?o[a+1]:0); return o; };
+  const N=cum(D), S=cum(N), M=cum(Cc), R=cum(M);
+  const g=(arr,a)=>a<arr.length?arr[a]:0;
+  return {q,l,d,D,Cc,N,S,M,R,om,nac,g};
+}
+
+/* ================= gráficos ================= */
+const CW=520, CH=250, PL=52, PR=12, PT=12, PB=40;
+function niceMax(v){ if(v<=0) return 1; const p=Math.pow(10,Math.floor(Math.log10(v))); const f=v/p; return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p; }
+function shortEur(v){ const a=Math.abs(v); if(a>=1e6) return nf(v/1e6,a>=1e7?0:1)+' M'; if(a>=1e3) return nf(v/1e3,a>=1e4?0:1)+' k'; return nf(v,a<10?2:0); }
+function drawHist(svgId,tipId,legId,rows,M,isRenta){
+  const svg=$(svgId), tip=$(tipId);
+  const pos=rows.filter(r=>r.v>0), zero=rows.filter(r=>r.v<=0).reduce((a,r)=>a+r.p,0);
+  const vmax=Math.max(...pos.map(r=>r.v),M.mu+M.sd,1e-9);
+  const NB=28, bw=vmax/NB, bins=new Array(NB).fill(0).map(()=>({p:0,d:0,s:0}));
+  pos.forEach(r=>{ const b=Math.min(NB-1,Math.floor(r.v/bw*(1-1e-12))); bins[b].p+=r.p; if(r.kind==='death') bins[b].d+=r.p; else bins[b].s+=r.p; });
+  const hasZero=zero>1e-12;
+  const x0=PL+(hasZero?34:0), x1=CW-PR, y0=CH-PB, y1=PT;
+  const pbin=Math.max(0,...bins.map(b=>b.p));
+  const clip=hasZero && pbin>0 && zero>4*pbin;   // la masa en 0 aplasta el resto: se recorta su barra
+  const pmax=niceMax(clip?pbin*1.15:Math.max(zero,pbin));
+  const Y=p=>y0-(p/pmax)*(y0-y1), X=v=>x0+(v/(NB*bw))*(x1-x0);
+  let s='';
+  for(let k=0;k<=4;k++){ const p=pmax*k/4, yy=Y(p); s+=`<line x1="${PL}" x2="${x1}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text class="ax" x="${PL-6}" y="${yy+3}" text-anchor="end">${nf(p*100,p*100<1?2:0)}%</text>`; }
+  if(hasZero){ const yz=clip?y1:Y(zero);
+    s+=`<rect data-tip="Valor 0 · prob. ${nf(zero*100,4)} %" x="${PL+4}" y="${yz}" width="24" height="${Math.max(y0-yz,0.5)}" rx="3" fill="var(--zero)"/><text class="ax" x="${PL+16}" y="${y0+14}" text-anchor="middle">0</text>`;
+    if(clip) s+=`<path d="M${PL+2} ${y1+14} l28 -6 M${PL+2} ${y1+20} l28 -6" stroke="var(--paper-3)" stroke-width="3"/><text class="axl" x="${x1}" y="${y1+10}" text-anchor="end" style="fill:var(--ink-soft)">valor 0: ${nf(zero*100,2)} % (barra recortada)</text>`; }
+  bins.forEach((b,k)=>{ if(b.p<=0) return; const xa=X(k*bw)+1, w=Math.max(X((k+1)*bw)-X(k*bw)-2,1.5);
+    const col=isRenta||b.s>b.d?'var(--sur)':'var(--mor)';
+    s+=`<rect data-tip="${shortEur(k*bw)} – ${shortEur((k+1)*bw)} € · ${nf(b.p*100,4)} %" x="${xa}" y="${Y(b.p)}" width="${w}" height="${Math.max(y0-Y(b.p),0.5)}" rx="2" fill="${col}"/>`; });
+  for(let k=0;k<=4;k++){ const v=NB*bw*k/4; s+=`<text class="ax" x="${X(v)}" y="${y0+14}" text-anchor="middle">${shortEur(v)}</text>`; }
+  s+=`<line x1="${PL}" x2="${x1}" y1="${y0}" y2="${y0}" stroke="var(--line-strong)"/>`;
+  const xm=X(M.mu); s+=`<line x1="${xm}" x2="${xm}" y1="${y1}" y2="${y0}" stroke="var(--dif)" stroke-width="2" stroke-dasharray="5 4"/><text class="axl" x="${Math.min(xm+5,x1-70)}" y="${y1+(clip?26:10)}" style="fill:var(--dif)">E = ${shortEur(M.mu)} €</text>`;
+  s+=`<text class="axl" x="${(x0+x1)/2}" y="${CH-6}" text-anchor="middle">valor actual (€)</text>`;
+  svg.innerHTML=s;
+  $(legId).innerHTML=(isRenta?`<span><i class="sw" style="background:var(--sur)"></i>pagos cobrados</span>`:`<span><i class="sw" style="background:var(--mor)"></i>pago por fallecimiento</span><span><i class="sw" style="background:var(--sur)"></i>pago por supervivencia</span>`)+
+    (hasZero?`<span><i class="sw" style="background:var(--zero)"></i>valor 0 · ${nf(zero*100,2)} %</span>`:'')+`<span><i class="sw" style="background:var(--dif)"></i>esperanza</span>`;
+  svg.onmousemove=e=>{ const t=e.target.closest('[data-tip]'); if(!t){ tip.classList.remove('show'); return; } const r=svg.parentElement.getBoundingClientRect(); tip.textContent=t.dataset.tip; tip.style.left=(e.clientX-r.left)+'px'; tip.style.top=(e.clientY-r.top)+'px'; tip.classList.add('show'); };
+  svg.onmouseleave=()=>tip.classList.remove('show');
+}
+function drawSurv(svgId,legId,Lf,bands){
+  const svg=$(svgId), W=Lf.W, x0=PL, x1=CW-PR, y0=CH-PB, y1=PT;
+  const X=t=>x0+(t/W)*(x1-x0), Y=p=>y0-p*(y0-y1);
+  let s='';
+  bands.forEach(b=>{ s+=`<rect x="${X(b[0])}" y="${y1}" width="${Math.max(X(b[1])-X(b[0]),1)}" height="${y0-y1}" fill="${b[2]}"/>`; });
+  for(let k=0;k<=4;k++){ const yy=Y(k/4); s+=`<line x1="${x0}" x2="${x1}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text class="ax" x="${x0-6}" y="${yy+3}" text-anchor="end">${k*25}%</text>`; }
+  const step=W>60?20:W>25?10:5;
+  for(let t=0;t<=W;t+=step) s+=`<text class="ax" x="${X(t)}" y="${y0+14}" text-anchor="middle">${B.x+t}</text>`;
+  let d=''; for(let t=0;t<=W;t++) d+=(t?'L':'M')+X(t).toFixed(1)+' '+Y(Lf.L[t]).toFixed(1)+' ';
+  s+=`<path d="${d}" fill="none" stroke="var(--sur)" stroke-width="2.4" stroke-linejoin="round"/>`;
+  s+=`<line x1="${x0}" x2="${x1}" y1="${y0}" y2="${y0}" stroke="var(--line-strong)"/><text class="axl" x="${(x0+x1)/2}" y="${CH-6}" text-anchor="middle">edad</text>`;
+  svg.innerHTML=s;
+  const seen=new Set();
+  $(legId).innerHTML=`<span><i class="sw" style="background:var(--sur)"></i>ₜpₓ${hasL(B.tabla)?' de la generación '+Lf.nac:''}</span>`+bands.filter(b=>!seen.has(b[4])&&seen.add(b[4])).map(b=>`<span><i class="sw" style="background:${b[3]}"></i>${b[4]}</span>`).join('');
+}
+
+/* ================= bloques comunes ================= */
+function cards(id,M,extra){
+  $(id).innerHTML=[
+    ['Esperanza E (k = 1)',eur(M.mu),'prima única pura','var(--accent)'],
+    ['Desviación típica σ',eur(M.sd),'σ² = '+sci(M.var),'var(--mor)'],
+    ['Coef. de variación',nf(M.cv,4),'σ / E','var(--dif)'],
+    ['Asimetría γ₁',nf(M.g1,4),M.g1>0?'cola a la derecha':'cola a la izquierda','var(--sur)'],
+    ['Curtosis γ₂',nf(M.g2,3),'exceso γ₂ − 3 = '+nf(M.g2-3,3),'var(--muted)'],
+    ...(extra||[])
+  ].map(([k,v,p,c])=>`<div class="card" style="--cc:${c}"><span class="k">${k}</span><span class="v">${v}</span><span class="p">${p}</span></div>`).join('');
+}
+function momTable(id,M){
+  const cen=[0,M.var,M.m3,M.m4];
+  $(id).innerHTML='<thead><tr><th>k</th><th>E[Zᵏ] · momento ordinario</th><th>Momento centrado</th></tr></thead><tbody>'+
+    M.E.map((e,k)=>`<tr><td>${k+1}</td><td>${sci(e)}</td><td>${k===0?'0':sci(cen[k])}</td></tr>`).join('')+
+    `</tbody><tfoot><tr><td class="txt">Σ prob.</td><td>${nf(M.psum,12)}</td><td class="txt">${Math.abs(M.psum-1)<1e-9?'① cuadra':'revisar'}</td></tr></tfoot>`;
+}
+function chip(ok,label){ return `<span class="chip ${ok?'good':'bad'}">${label}</span>`; }
+const rel=(a,b)=>Math.abs(a-b)<=1e-7*Math.max(1,Math.abs(b));
+function ctTable(id,rows,k,isRenta){
+  let cum=0,sum=0;
+  const head=`<tr><th>Suceso</th><th>${isRenta?'Pagos':'t pago'}</th><th>Valor</th><th>Prob.</th><th>Prob. acum.</th><th>valorᵏ · prob</th></tr>`;
+  const body=rows.map(r=>{ cum+=r.p; const c=Math.pow(r.v,k)*r.p; sum+=c;
+    const col=r.kind==='death'?'var(--mor)':r.kind==='zero'?'var(--zero)':'var(--sur)';
+    return `<tr><td class="txt"><span class="kdot" style="background:${col}"></span>${r.lbl}</td><td>${r.t??'–'}</td><td>${nf(r.v,2)}</td><td>${sci(r.p)}</td><td>${nf(cum,8)}</td><td>${sci(c)}</td></tr>`; }).join('');
+  $(id).innerHTML=`<thead>${head}</thead><tbody>${body}</tbody><tfoot><tr><td class="txt">Total</td><td></td><td></td><td>${nf(cum,10)}</td><td></td><td>E[·<sup>${k}</sup>] = ${sci(sum)}</td></tr></tfoot>`;
+}
+function csvOf(rows){ return ['suceso;t;valor;prob'].concat(rows.map(r=>`${r.lbl};${r.t??''};${String(r.v).replace('.',',')};${String(r.p).replace('.',',')}`)).join('\n'); }
+
+/* ================= SEGUROS ================= */
+let segRowsCache=[];
+function updSeg(){
+  const t=SG.tipo;
+  const vis={C:true,C2:t==='mix'||t==='comb',m:['dt','dve','comb'].includes(t),n:['temp','cd','mix','dt','comb'].includes(t)};
+  document.querySelectorAll('[data-s]').forEach(f=>f.hidden=!vis[f.dataset.s]);
+  $('s-C-l').textContent=t==='mix'?'Capital fallecimiento (€)':t==='comb'?'Capital C₁ (€)':'Capital C (€)';
+  $('s-C2-l').textContent=t==='mix'?'Capital supervivencia (€)':'Capital C₂ (€)';
+  $('s-m-l').textContent=t==='comb'?'C₂ desde el año m':'Diferimiento m';
+  $('s-n-l').textContent=t==='comb'?'Temporal de C₁, n':'Duración n';
+  const spec=segSpec(), rows=segRows(spec), M=moments(rows);
+  const [sym,desc]=segSymbol(spec); $('s-sym').textContent=sym; $('s-desc').textContent=desc;
+  const w=[...spec.warns]; if(t==='mix' && SG.C!==SG.C2) w.push('Con capitales distintos es un temporal más un capital diferido.');
+  $('s-warn').hidden=!w.length; $('s-warn').textContent=w.join(' ');
+  const p0=rows.filter(r=>r.kind==='zero').reduce((a,r)=>a+r.p,0);
+  cards('s-cards',M,[['Probabilidad de pago',nf((1-p0)*100,4)+' %','1 − P(valor 0)','var(--good)']]);
+  momTable('s-mom',M);
+  // comprobación de la esperanza con las columnas de conmutación
+  const cm=commut(B.i), g=cm.g, x=B.x, Dx=cm.D[x], {m,n}=spec, C=SG.C;
+  let chk, txt;
+  if(t==='temp'){ chk=C*(g(cm.M,x)-g(cm.M,x+n))/Dx; txt='C·(M<sub>x</sub> − M<sub>x+n</sub>)/D<sub>x</sub>'; }
+  else if(t==='cd'){ chk=C*g(cm.D,x+n)/Dx; txt='C·D<sub>x+n</sub>/D<sub>x</sub>'; }
+  else if(t==='mix'){ chk=(C*(g(cm.M,x)-g(cm.M,x+n))+SG.C2*g(cm.D,x+n))/Dx; txt='[C·(M<sub>x</sub> − M<sub>x+n</sub>) + C·D<sub>x+n</sub>]/D<sub>x</sub>'; }
+  else if(t==='ve'){ chk=C*g(cm.M,x)/Dx; txt='C·M<sub>x</sub>/D<sub>x</sub>'; }
+  else if(t==='dt'){ chk=C*(g(cm.M,x+m)-g(cm.M,x+m+n))/Dx; txt='C·(M<sub>x+m</sub> − M<sub>x+m+n</sub>)/D<sub>x</sub>'; }
+  else if(t==='dve'){ chk=C*g(cm.M,x+m)/Dx; txt='C·M<sub>x+m</sub>/D<sub>x</sub>'; }
+  else { chk=(C*(g(cm.M,x)-g(cm.M,x+n))+SG.C2*g(cm.M,x+m))/Dx; txt='[C₁·(M<sub>x</sub> − M<sub>x+n</sub>) + C₂·M<sub>x+m</sub>]/D<sub>x</sub>'; }
+  $('s-check').innerHTML=`<div class="note info"><span>Esperanza con las columnas de la hoja de clase, ${txt}: <b class="mono">${eur(chk)}</b></span> ${chip(rel(chk,M.mu),rel(chk,M.mu)?'coincide con E':'difiere')}</div>`+
+    `<div class="note info"><span>Varianza = E[Z²] − E[Z]² = ${sci(M.E[1])} − ${sci(M.mu*M.mu)} = <b class="mono">${sci(M.var)}</b></span></div>`+
+    `<div class="note info"><span>Las conmutaciones solo dan la esperanza; los momentos de orden 2 a 4 salen de la tabla de contingencia de abajo.</span></div>`;
+  drawHist('s-hist','s-hist-tip','s-hist-leg',rows,M,false);
+  const mor='rgba(242,134,172,.22)', dif='rgba(240,162,78,.18)', W=spec.Lf.W, bands=[];
+  if(t==='temp'||t==='mix') bands.push([0,n,mor,'var(--mor)','cobertura de fallecimiento']);
+  if(t==='ve') bands.push([0,W,mor,'var(--mor)','cobertura de fallecimiento']);
+  if(t==='cd') bands.push([0,n,dif,'var(--dif)','diferimiento']);
+  if(t==='dt'){ bands.push([0,m,dif,'var(--dif)','diferimiento']); bands.push([m,m+n,mor,'var(--mor)','cobertura de fallecimiento']); }
+  if(t==='dve'){ bands.push([0,m,dif,'var(--dif)','diferimiento']); bands.push([m,W,mor,'var(--mor)','cobertura de fallecimiento']); }
+  if(t==='comb'){ bands.push([0,n,mor,'var(--mor)','cobertura de fallecimiento']); if(m>n) bands.push([n,m,dif,'var(--dif)','sin cobertura']); bands.push([m,W,mor,'var(--mor)','cobertura de fallecimiento']); }
+  drawSurv('s-surv','s-surv-leg',spec.Lf,bands);
+  segRowsCache=rows; ctTable('s-ct',rows,SG.k,false);
+}
+
+/* ================= RENTAS ================= */
+function rentaRows(){
+  const Lf=life(), v=1/(1+B.i), {mod,dur,m,c,g,pi}=RT, pre=mod==='pre', warns=[];
+  let k=Math.max(0,Math.round(RT.k)); if(k>=Lf.W){ k=Lf.W-1; warns.push('El diferimiento supera ω.'); }
+  let n=dur==='temp'?Math.max(1,Math.round(RT.n)):Lf.W-k;
+  if(k+n>Lf.W){ n=Lf.W-k; warns.push(`La renta se trunca en ω (${Lf.om} años).`); }
+  const N=n*m, ts=[], pay=[];
+  for(let j=1;j<=N;j++){ ts.push(k+(pre?(j-1)/m:j/m)); pay.push(c*(g==='geo'?Math.pow(1+pi,Math.floor((j-1)/m)):1)); }
+  const rows=[{t:0,v:0,p:1-Lf.S(ts[0]),kind:'zero',lbl:k>0?'Fallece en el diferimiento o antes del 1.er pago':'Fallece antes del 1.er pago'}];
+  let cum=0;
+  for(let j=0;j<N;j++){
+    cum+=pay[j]*Math.pow(v,ts[j]);
+    const pj=Lf.S(ts[j])-(j+1<N?Lf.S(ts[j+1]):0);
+    rows.push({t:j+1,v:cum,p:pj,kind:'ann',lbl:j===N-1?(dur==='temp'?`Cobra los ${N} pagos`:`Cobra los ${N} pagos (llega a ω)`):`Cobra ${j+1} pago${j?'s':''}; último a los ${nf(B.x+ts[j],2)} años`});
+  }
+  return {Lf,rows:rows.filter(r=>r.p>0),k,n,N,warns,ts};
+}
+let renRowsCache=[];
+function updRen(){
+  $('r-n-f').hidden=RT.dur!=='temp'; $('r-pi-f').hidden=RT.g!=='geo';
+  $('r-c-hint').textContent=`Cuantía anual c·m = ${eur(RT.c*RT.m)}`;
+  const R=rentaRows(), M=moments(R.rows), pre=RT.mod==='pre';
+  const a=pre?'ä':'a', mm=RT.m>1?`⁽${RT.m}⁾`:'', pref=R.k>0?`${R.k}|`:'';
+  $('r-sym').textContent=`${nf(RT.c*RT.m,2)} · ${pref}${a}${mm}${B.x}${RT.dur==='temp'?':'+R.n+'⌉':''}`+(RT.g==='geo'?` · π = ${nf(RT.pi*100,2)} %`:'');
+  $('r-desc').textContent=`Hasta ${R.N} pagos ${pre?'prepagables':'pospagables'} de ${eur(RT.c)}${RT.g==='geo'?' (crecen cada año)':''}; el primero a los ${nf(B.x+R.ts[0],2)} años.`;
+  $('r-warn').hidden=!R.warns.length; $('r-warn').textContent=R.warns.join(' ');
+  cards('r-cards',M,[['Valor máximo',eur(R.rows[R.rows.length-1].v),'si cobra todos los pagos','var(--good)']]);
+  momTable('r-mom',M);
+  let html='';
+  if(RT.g==='none' && RT.m===1){
+    const cm=commut(B.i), g=cm.g, x=B.x, Dx=cm.D[x], k=R.k, end=RT.dur==='temp'?x+k+R.n:null;
+    const ex=pre?(g(cm.N,x+k)-(end!==null?g(cm.N,end):0))/Dx:(g(cm.N,x+k+1)-(end!==null?g(cm.N,end+1):0))/Dx;
+    const val=ex*RT.c;
+    html+=`<div class="note info"><span>Esperanza con las columnas de la hoja de clase, c·(${pre?'N<sub>x+k</sub> − N<sub>x+k+n</sub>':'N<sub>x+k+1</sub> − N<sub>x+k+n+1</sub>'})/D<sub>x</sub>: <b class="mono">${eur(val)}</b></span> ${chip(rel(val,M.mu),rel(val,M.mu)?'coincide con E':'difiere')}</div>`;
+  } else if(RT.m>1) html+=`<div class="note info"><span>Con m = ${RT.m} cada fila es un subperiodo de 1/${RT.m} de año: la probabilidad es fallecer en ese subperiodo, con l<sub>x</sub> interpolada linealmente.</span></div>`;
+  html+=`<div class="note info"><span>Varianza = E[Y²] − E[Y]² = ${sci(M.E[1])} − ${sci(M.mu*M.mu)} = <b class="mono">${sci(M.var)}</b></span></div>`;
+  $('r-check').innerHTML=html;
+  drawHist('r-hist','r-hist-tip','r-hist-leg',R.rows,M,true);
+  const bands=[]; if(R.k>0) bands.push([0,R.k,'rgba(240,162,78,.18)','var(--dif)','diferimiento']);
+  bands.push([R.k,R.k+R.n,'rgba(53,217,196,.14)','var(--sur)','periodo de pagos']);
+  drawSurv('r-surv','r-surv-leg',R.Lf,bands);
+  renRowsCache=R.rows; ctTable('r-ct',R.rows,RT.kk,true);
+}
+
+/* ================= CONMUTACIÓN ================= */
+let conCache='';
+function updCon(){
+  const cm=commut(B.i), x=B.x;
+  $('c-title').textContent=`${B.tabla} · ${B.sexo==='H'?'hombre':'mujer'}${hasL(B.tabla)?' · generación '+cm.nac:''} · i = ${nf(B.i*100,2)} %`;
+  const rows=[]; let csv='x;qx;px;lx;dx;Dx;Nx;Sx;Cx;Mx;Rx;Ax;äx';
+  for(let a=0;a<=cm.om;a++){
+    const Ax=cm.D[a]>0?cm.M[a]/cm.D[a]:NaN, ax=cm.D[a]>0?cm.N[a]/cm.D[a]:NaN;
+    const r=[a,cm.q[a],1-cm.q[a],cm.l[a],cm.d[a],cm.D[a],cm.N[a],cm.S[a],cm.Cc[a],cm.M[a],cm.R[a],Ax,ax];
+    rows.push(`<tr class="${a===x?'hl':''}" ${a===x?'id="c-hlrow"':''}><td>${a}</td><td>${nf(r[1],9)}</td><td>${nf(r[2],9)}</td>${r.slice(3,11).map(v=>`<td>${nf(v,4)}</td>`).join('')}<td>${nf(Ax,9)}</td><td>${nf(ax,6)}</td></tr>`);
+    csv+='\n'+r.map(v=>String(v).replace('.',',')).join(';');
+  }
+  conCache=csv;
+  $('c-table').innerHTML='<thead><tr><th>x</th><th>qₓ</th><th>pₓ</th><th>lₓ</th><th>dₓ</th><th>Dₓ</th><th>Nₓ</th><th>Sₓ</th><th>Cₓ</th><th>Mₓ</th><th>Rₓ</th><th>Aₓ</th><th>äₓ</th></tr></thead><tbody>'+rows.join('')+'</tbody>';
+}
+
+/* ================= navegación ================= */
+const NAV={main:'dos', sv:'fund', cv:'seg'};
+function paint(){
+  document.querySelectorAll('#main-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.view===NAV.main));
+  document.querySelectorAll('.view').forEach(s=>s.hidden=s.id!=='view-'+NAV.main);
+  ['sv','cv'].forEach(gr=>{
+    document.querySelectorAll(`.subnav[data-group="${gr}"] button`).forEach(b=>b.classList.toggle('active',b.dataset.sub===NAV[gr]));
+    document.querySelectorAll(`[id^="${gr}-"].subview`).forEach(s=>s.hidden=s.id!==gr+'-'+NAV[gr]);
+  });
+  try{ localStorage.setItem('sv-nav',JSON.stringify(NAV)); }catch(e){}
+  if(NAV.main==='calc') updCalc();
+}
+function go(main,sub){ NAV.main=main; if(sub){ NAV[main==='dos'?'sv':'cv']=sub; } paint(); }
+document.querySelectorAll('#main-tabs button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));
+document.querySelectorAll('.subnav').forEach(nv=>nv.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; NAV[nv.dataset.group]=b.dataset.sub; paint(); }));
+function updCalc(){ updBases(); if(NAV.cv==='seg') updSeg(); else if(NAV.cv==='ren') updRen(); else updCon(); }
+
+/* ================= ejemplos ================= */
+const PAS='PASEM2020_General_2o', PER='PER2020_Ind_2o';
+const EX=[
+ ['Ejercicio 1','A¹23:42⌉ · 1.000.000 €','Temporal hasta los 65, edad 23.',{tabla:PAS,x:23},{tipo:'temp',C:1e6,n:42}],
+ ['Ejercicio 2','37|A¹23:10⌉ · 2.000.000 €','Fallece entre los 60 y 70, edad 23.',{tabla:PAS,x:23},{tipo:'dt',C:2e6,m:37,n:10}],
+ ['Ejercicio 3','A¹23:42⌉ + 42|A23','1.000.000 € antes de los 65 y 500.000 € después.',{tabla:PAS,x:23},{tipo:'comb',C:1e6,C2:5e5,n:42,m:42}],
+ ['Dotal','16E7 · 200.000 €','Niño de 7 años que cobra a los 23.',{tabla:PER,x:7},{tipo:'cd',C:2e5,n:16}],
+ ['Caso 1','A¹30:25⌉ · 250.000 €','Temporal 25 años, edad 30.',{tabla:PAS,x:30},{tipo:'temp',C:25e4,n:25}],
+ ['Caso 2','25E45 · 200.000 €','Capital diferido 25 años, edad 45.',{tabla:PER,x:45},{tipo:'cd',C:2e5,n:25}],
+ ['Caso 3','A45:17⌉ · 500.000 €','Mixto 17 años, edad 45.',{tabla:PAS,x:45},{tipo:'mix',C:5e5,C2:5e5,n:17}],
+ ['Caso 4','12|A45 · 300.000 €','Vida entera diferido 12 años, edad 45.',{tabla:PAS,x:45},{tipo:'dve',C:3e5,m:12}],
+ ['Caso 5','A¹30:35⌉ + 35|A30','600.000 € antes de los 65 y 200.000 € después.',{tabla:PAS,x:30},{tipo:'comb',C:6e5,C2:2e5,n:35,m:35}],
+ ['Caso 6','12E6 · 60.000 €','Dotal: niño de 6 años que cobra a los 18.',{tabla:PER,x:6},{tipo:'cd',C:6e4,n:12}],
+ ['Caso 7','A40:25⌉ · 150.000 €','Mixto hasta los 65, edad 40.',{tabla:PAS,x:40},{tipo:'mix',C:15e4,C2:15e4,n:25}],
+ ['Caso 8','A¹30:30⌉ · 100.000 €*','Temporal 30 años, edad 30.',{tabla:PAS,x:30},{tipo:'temp',C:1e5,n:30}],
+ ['Caso 9','15|A30 · 100.000 €*','Vida entera diferido 15 años, edad 30.',{tabla:PAS,x:30},{tipo:'dve',C:1e5,m:15}],
+ ['Caso 10','C₁A¹30:20⌉ + C₂·55|A30','C₁ = 100.000 €* hasta los 50; C₂ = 50.000 €* desde los 85.',{tabla:PAS,x:30},{tipo:'comb',C:1e5,C2:5e4,n:20,m:55}],
+ ['Renta de clase','12.000 · 48|a⁽¹²⁾22','1.000 €/mes pospagable desde los 70, edad 22.',{tabla:PER,x:22},null,{mod:'post',dur:'vit',k:48,m:12,c:1000}],
+ ['Renta 1','12.000 · 20|ä⁽¹²⁾45','1.000 €/mes prepagable desde los 65, edad 45.',{tabla:PER,x:45},null,{mod:'pre',dur:'vit',k:20,m:12,c:1000}],
+ ['Renta 2','8.000 · 18|a⁽²⁾50','4.000 €/semestre pospagable desde los 68, edad 50.',{tabla:PER,x:50},null,{mod:'post',dur:'vit',k:18,m:2,c:4000}],
+ ['Renta 3','3.200 · 37|ä⁽⁴⁾30','800 €/trimestre prepagable desde los 67, edad 30.',{tabla:PER,x:30},null,{mod:'pre',dur:'vit',k:37,m:4,c:800}],
+ ['Renta 4','60.000 · 28|a⁽⁶⁾39','10.000 € cada dos meses pospagable desde los 67, edad 39.',{tabla:PER,x:39},null,{mod:'post',dur:'vit',k:28,m:6,c:10000}],
+ ['Renta 5','6.000 · 3|ä⁽¹²⁾25:4⌉','500 €/mes prepagable; empieza en 3 años y dura como máximo 4.',{tabla:PER,x:25},null,{mod:'pre',dur:'temp',k:3,n:4,m:12,c:500}]
+];
+function syncInputs(){
+  $('in-tabla').value=B.tabla; setSeg('in-sexo',B.sexo); $('in-x').value=B.x; $('in-anio').value=B.anio; $('in-i').value=+(B.i*100).toFixed(4);
+  $('s-tipo').value=SG.tipo; $('s-C').value=SG.C; $('s-C2').value=SG.C2; $('s-m').value=SG.m; $('s-n').value=SG.n;
+  setSeg('r-mod',RT.mod); setSeg('r-dur',RT.dur); $('r-n').value=RT.n; $('r-k').value=RT.k; $('r-m').value=RT.m; $('r-c').value=RT.c; $('r-g').value=RT.g; $('r-pi').value=+(RT.pi*100).toFixed(4);
+}
+$('ex-grid').innerHTML=EX.map((e,idx)=>`<div class="ex"><span class="tag">${e[4]?'Seguro':'Renta'}</span><span class="t">${e[0]}</span><span class="s">${e[1]}</span><span class="d">${e[2]}</span><button class="btn primary" type="button" data-ex="${idx}">Abrir en la calculadora</button></div>`).join('');
+$('ex-grid').addEventListener('click',ev=>{
+  const b=ev.target.closest('[data-ex]'); if(!b) return; const e=EX[+b.dataset.ex];
+  Object.assign(B,e[3],{anio:2026,i:0.03});
+  if(e[4]){ Object.assign(SG,e[4]); syncInputs(); go('calc','seg'); }
+  else { Object.assign(RT,{g:'none'},e[5]); syncInputs(); go('calc','ren'); }
+  $('main-tabs').scrollIntoView({behavior:'smooth',block:'start'});
+});
+
+/* ================= eventos ================= */
+function updBases(){
+  const om=omega(B.tabla,B.sexo); if(B.x>om-1){ B.x=om-1; $('in-x').value=B.x; }
+  const gen=hasL(B.tabla);
+  $('f-anio').classList.toggle('disabled',!gen); $('in-anio').disabled=!gen;
+  $('nac-hint').textContent=gen?`Generación (año de nacimiento): ${B.anio-B.x}`:'Tabla de periodo: el año no interviene';
+  $('tabla-hint').textContent=TINFO[B.tabla]+` ω = ${om}.`;
+  $('v-hint').textContent=`v = (1+i)⁻¹ = ${nf(1/(1+B.i),8)}`;
+}
+$('in-tabla').addEventListener('input',()=>{ B.tabla=$('in-tabla').value; updCalc(); });
+seg('in-sexo',v=>{ B.sexo=v; updCalc(); });
+$('in-x').addEventListener('input',()=>{ const v=parseInt($('in-x').value,10); if(Number.isFinite(v)&&v>=0&&v<=119){ B.x=v; updCalc(); } });
+$('in-anio').addEventListener('input',()=>{ const v=parseInt($('in-anio').value,10); if(Number.isFinite(v)&&v>1800&&v<2200){ B.anio=v; updCalc(); } });
+$('in-i').addEventListener('input',()=>{ const v=parseFloat($('in-i').value); if(Number.isFinite(v)&&v>-50){ B.i=v/100; updCalc(); } });
+$('s-tipo').addEventListener('input',()=>{ SG.tipo=$('s-tipo').value; updSeg(); });
+[['s-C','C'],['s-C2','C2'],['s-m','m'],['s-n','n']].forEach(([id,k])=>$(id).addEventListener('input',()=>{ const v=parseFloat($(id).value); if(Number.isFinite(v)){ SG[k]=v; updSeg(); } }));
+seg('s-k',v=>{ SG.k=+v; updSeg(); }); seg('r-k2',v=>{ RT.kk=+v; updRen(); });
+seg('r-mod',v=>{ RT.mod=v; updRen(); }); seg('r-dur',v=>{ RT.dur=v; updRen(); });
+[['r-n','n'],['r-k','k'],['r-c','c']].forEach(([id,k])=>$(id).addEventListener('input',()=>{ const v=parseFloat($(id).value); if(Number.isFinite(v)){ RT[k]=v; updRen(); } }));
+$('r-m').addEventListener('input',()=>{ RT.m=+$('r-m').value; updRen(); });
+$('r-g').addEventListener('input',()=>{ RT.g=$('r-g').value; updRen(); });
+$('r-pi').addEventListener('input',()=>{ const v=parseFloat($('r-pi').value); if(Number.isFinite(v)){ RT.pi=v/100; updRen(); } });
+$('s-csv').addEventListener('click',()=>copyText(csvOf(segRowsCache),$('s-csv-out'),$('s-csv-msg')));
+$('r-csv').addEventListener('click',()=>copyText(csvOf(renRowsCache),$('r-csv-out'),$('r-csv-msg')));
+$('c-csv').addEventListener('click',()=>copyText(conCache,$('c-csv-out'),$('c-csv-msg')));
+
+window.__lab={B,SG,RT,life,segSpec,segRows,moments,rentaRows,commut,go};
+syncInputs();
+try{ const s=JSON.parse(localStorage.getItem('sv-nav')||'null'); if(s && s.main) Object.assign(NAV,s); }catch(e){}
+const hm={dosier:['dos'],calculadora:['calc'],seguros:['calc','seg'],rentas:['calc','ren'],conmutacion:['calc','con'],ejercicios:['ej'],glosario:['glo']};
+const hh=(location.hash||'').slice(1); if(hm[hh]){ NAV.main=hm[hh][0]; if(hm[hh][1]) NAV.cv=hm[hh][1]; }
+paint();
+})();
+</script>
+</body>
+</html>
